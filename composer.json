@@ -1,0 +1,57 @@
+{
+    "name": "julienlinard/core-php",
+    "description": "Framework MVC complet pour applications PHP avec Container DI, Controllers, Views, Forms, Session et plus",
+    "type": "library",
+    "keywords": [
+        "framework",
+        "mvc",
+        "php",
+        "php8",
+        "container",
+        "dependency-injection",
+        "controller",
+        "view",
+        "template",
+        "form",
+        "validation",
+        "session"
+    ],
+    "homepage": "https://github.com/julien-lin/core-php",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Julien Linard",
+            "email": "julien.linard.dev@gmail.com",
+            "homepage": "https://github.com/julien-lin"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/julien-lin/core-php/issues",
+        "source": "https://github.com/julien-lin/core-php"
+    },
+    "require": {
+        "php": ">=8.0",
+        "julienlinard/php-router": "^1.0",
+        "julienlinard/php-dotenv": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "JulienLinard\\Core\\": "src/Core/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "JulienLinard\\Core\\Tests\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "test-coverage": "phpunit --coverage-text"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
+
