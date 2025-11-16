@@ -7,6 +7,13 @@ namespace JulienLinard\Core\Session;
  */
 class Session
 {
+    // Constantes pour les clés de session couramment utilisées
+    public const USER = 'user';
+    public const FORM_RESULT = 'form_result';
+    public const FORM_SUCCESS = 'form_success';
+    public const FLASH_MESSAGE = 'flash_message';
+    public const FLASH_ERROR = 'flash_error';
+
     /**
      * Démarre la session si elle n'est pas déjà démarrée
      */
