@@ -90,6 +90,9 @@ class View
 
         // Libérer le cache et afficher
         ob_end_flush();
+        
+        // Arrêter l'exécution après le rendu de la vue
+        exit();
     }
 
     /**
