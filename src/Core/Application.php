@@ -54,9 +54,52 @@ class Application
 
     /**
      * Retourne l'instance unique de l'application
+     * 
+     * @return self|null L'instance de l'application ou null si elle n'a pas été créée
      */
     public static function getInstance(): ?self
     {
+        return self::$instance;
+    }
+
+    /**
+     * Retourne l'instance unique de l'application ou la crée si elle n'existe pas
+     * 
+     * Cette méthode est utile dans les cas où l'application doit être accessible
+     * même si elle n'a pas été explicitement initialisée (ex: gestion d'erreurs)
+     * 
+     * @param string|null $basePath Chemin de base de l'application (requis si l'instance n'existe pas)
+     * @return self L'instance de l'application
+     * @throws \RuntimeException Si l'instance n'existe pas et que $basePath n'est pas fourni
+     */
+    public static function getInstanceOrCreate(?string $basePath = null): self
+    {
+        if (self::$instance === null) {
+            if ($basePath === null) {
+                throw new \RuntimeException(
+                    'L\'application n\'a pas été initialisée et aucun chemin de base n\'a été fourni. ' .
+                    'Utilisez Application::create($basePath) ou Application::getInstanceOrCreate($basePath).'
+                );
+            }
+            self::$instance = new self($basePath);
+        }
+        return self::$instance;
+    }
+
+    /**
+     * Retourne l'instance unique de l'application ou lance une exception si elle n'existe pas
+     * 
+     * @return self L'instance de l'application
+     * @throws \RuntimeException Si l'instance n'a pas été créée
+     */
+    public static function getInstanceOrFail(): self
+    {
+        if (self::$instance === null) {
+            throw new \RuntimeException(
+                'L\'application n\'a pas été initialisée. ' .
+                'Utilisez Application::create($basePath) avant d\'appeler getInstanceOrFail().'
+            );
+        }
         return self::$instance;
     }
 

@@ -49,6 +49,15 @@ use JulienLinard\Core\Application;
 // Créer une instance de l'application
 $app = Application::create(__DIR__);
 
+// Récupérer l'instance existante (peut retourner null)
+$app = Application::getInstance();
+
+// Récupérer l'instance ou la créer si elle n'existe pas (utile pour les gestionnaires d'erreurs)
+$app = Application::getInstanceOrCreate(__DIR__);
+
+// Récupérer l'instance ou lancer une exception si elle n'existe pas
+$app = Application::getInstanceOrFail();
+
 // Configurer les chemins des vues
 $app->setViewsPath(__DIR__ . '/views');
 $app->setPartialsPath(__DIR__ . '/views/_templates');
