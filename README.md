@@ -198,19 +198,302 @@ $container->singleton('logger', function() {
 $service = $container->make(MyService::class);
 ```
 
-## 🔗 Intégration avec php-router
+## 🔗 Intégration avec les autres packages
+
+### Intégration avec php-router
+
+`core-php` inclut automatiquement `php-router`. Le router est accessible via `getRouter()`.
 
 ```php
-use JulienLinard\Router\Router;
 use JulienLinard\Core\Application;
+use JulienLinard\Router\Attributes\Route;
+use JulienLinard\Router\Response;
 
 $app = Application::create(__DIR__);
 $router = $app->getRouter();
 
-$router->registerRoutes(HomeController::class);
-$router->registerRoutes(UserController::class);
+// Définir des routes dans vos contrôleurs
+class HomeController extends \JulienLinard\Core\Controller\Controller
+{
+    #[Route(path: '/', methods: ['GET'], name: 'home')]
+    public function index(): Response
+    {
+        return $this->view('home/index', ['title' => 'Accueil']);
+    }
+}
 
+$router->registerRoutes(HomeController::class);
 $app->start();
+```
+
+### Intégration avec php-dotenv
+
+`core-php` inclut automatiquement `php-dotenv`. Utilisez `loadEnv()` pour charger les variables d'environnement.
+
+```php
+use JulienLinard\Core\Application;
+
+$app = Application::create(__DIR__);
+
+// Charger le fichier .env
+$app->loadEnv();
+
+// Les variables sont maintenant disponibles dans $_ENV
+echo $_ENV['DB_HOST'];
+```
+
+### Intégration avec doctrine-php
+
+Utilisez `doctrine-php` pour gérer vos entités dans vos contrôleurs.
+
+```php
+use JulienLinard\Core\Controller\Controller;
+use JulienLinard\Doctrine\EntityManager;
+use JulienLinard\Router\Attributes\Route;
+use JulienLinard\Router\Response;
+
+class UserController extends Controller
+{
+    public function __construct(
+        private EntityManager $em
+    ) {}
+    
+    #[Route(path: '/users/{id}', methods: ['GET'], name: 'user.show')]
+    public function show(int $id): Response
+    {
+        $user = $this->em->getRepository(User::class)->find($id);
+        
+        if (!$user) {
+            return $this->json(['error' => 'User not found'], 404);
+        }
+        
+        return $this->view('user/show', ['user' => $user]);
+    }
+}
+```
+
+### Intégration avec auth-php
+
+Utilisez `auth-php` pour gérer l'authentification dans vos contrôleurs.
+
+```php
+use JulienLinard\Core\Controller\Controller;
+use JulienLinard\Auth\AuthManager;
+use JulienLinard\Router\Attributes\Route;
+use JulienLinard\Router\Response;
+
+class DashboardController extends Controller
+{
+    public function __construct(
+        private AuthManager $auth
+    ) {}
+    
+    #[Route(path: '/dashboard', methods: ['GET'], name: 'dashboard')]
+    public function index(): Response
+    {
+        if (!$this->auth->check()) {
+            return $this->redirect('/login');
+        }
+        
+        $user = $this->auth->user();
+        return $this->view('dashboard/index', ['user' => $user]);
+    }
+}
+```
+
+### Utilisation indépendante des composants
+
+Vous pouvez utiliser les composants de `core-php` indépendamment sans `Application`.
+
+#### Session standalone
+
+```php
+use JulienLinard\Core\Session\Session;
+
+// Définir une valeur
+Session::set('user_id', 123);
+
+// Récupérer une valeur
+$userId = Session::get('user_id');
+
+// Flash message
+Session::flash('success', 'Opération réussie');
+
+// Supprimer
+Session::remove('user_id');
+```
+
+#### Container standalone
+
+```php
+use JulienLinard\Core\Container\Container;
+
+$container = new Container();
+
+// Binding simple
+$container->bind('database', function() {
+    return new Database();
+});
+
+// Singleton
+$container->singleton('logger', function() {
+    return new Logger();
+});
+
+// Résolution automatique
+$service = $container->make(MyService::class);
+```
+
+#### View standalone
+
+```php
+use JulienLinard\Core\View\View;
+
+// Vue complète avec layout
+$view = new View('home/index');
+$view->render(['title' => 'Accueil']);
+
+// Vue partielle (sans layout)
+$view = new View('partials/header', false);
+$view->render();
+```
+
+#### Form standalone
+
+```php
+use JulienLinard\Core\Form\FormResult;
+use JulienLinard\Core\Form\FormError;
+use JulienLinard\Core\Form\FormSuccess;
+use JulienLinard\Core\Form\Validator;
+
+$formResult = new FormResult();
+$validator = new Validator();
+
+// Validation
+if (!$validator->required($data['email'])) {
+    $formResult->addError(new FormError('Email requis'));
+}
+
+if (!$validator->email($data['email'])) {
+    $formResult->addError(new FormError('Email invalide'));
+}
+
+if ($formResult->hasErrors()) {
+    // Gérer les erreurs
+} else {
+    $formResult->addSuccess(new FormSuccess('Formulaire validé'));
+}
+```
+
+## 📚 API Reference
+
+### Application
+
+#### `create(string $basePath): self`
+
+Crée une nouvelle instance de l'application.
+
+```php
+$app = Application::create(__DIR__);
+```
+
+#### `getInstance(): ?self`
+
+Retourne l'instance existante ou null.
+
+```php
+$app = Application::getInstance();
+```
+
+#### `getInstanceOrCreate(?string $basePath = null): self`
+
+Retourne l'instance existante ou la crée si elle n'existe pas.
+
+```php
+$app = Application::getInstanceOrCreate(__DIR__);
+```
+
+#### `getInstanceOrFail(): self`
+
+Retourne l'instance existante ou lance une exception.
+
+```php
+$app = Application::getInstanceOrFail();
+```
+
+#### `loadEnv(string $file = '.env'): self`
+
+Charge les variables d'environnement depuis un fichier `.env`.
+
+```php
+$app->loadEnv();
+$app->loadEnv('.env.local');
+```
+
+#### `setViewsPath(string $path): self`
+
+Définit le chemin des vues.
+
+```php
+$app->setViewsPath(__DIR__ . '/views');
+```
+
+#### `setPartialsPath(string $path): self`
+
+Définit le chemin des partials.
+
+```php
+$app->setPartialsPath(__DIR__ . '/views/_templates');
+```
+
+#### `getRouter(): Router`
+
+Retourne l'instance du router.
+
+```php
+$router = $app->getRouter();
+```
+
+#### `start(): void`
+
+Démarre l'application (démarre la session).
+
+```php
+$app->start();
+```
+
+#### `handle(): void`
+
+Traite une requête HTTP et envoie la réponse.
+
+```php
+$app->handle();
+```
+
+### Controller
+
+#### `view(string $template, array $data = []): Response`
+
+Rend une vue avec les données.
+
+```php
+return $this->view('home/index', ['title' => 'Accueil']);
+```
+
+#### `json(array $data, int $statusCode = 200): Response`
+
+Retourne une réponse JSON.
+
+```php
+return $this->json(['message' => 'Success'], 200);
+```
+
+#### `redirect(string $url, int $statusCode = 302): Response`
+
+Redirige vers une URL.
+
+```php
+return $this->redirect('/login');
 ```
 
 ## 📝 License
