@@ -1,10 +1,10 @@
-# Core PHP - Complete MVC Framework
+# Core PHP - Framework MVC Complet
 
-[🇫🇷 Read in French](README.fr.md) | [🇬🇧 Read in English](README.md)
+[🇬🇧 Lire en anglais](README.md) | [🇫🇷 Lire en français](README.fr.md)
 
 ---
 
-A modern and complete MVC framework for PHP 8+ with DI Container, Controllers, Views, Forms, Session and more.
+Un framework MVC moderne et complet pour PHP 8+ avec Container DI, Controllers, Views, Forms, Session et plus.
 
 ## 🚀 Installation
 
@@ -12,9 +12,9 @@ A modern and complete MVC framework for PHP 8+ with DI Container, Controllers, V
 composer require julienlinard/core-php
 ```
 
-**Requirements**: PHP 8.0 or higher
+**Requirements** : PHP 8.0 ou supérieur
 
-## ⚡ Quick Start
+## ⚡ Démarrage rapide
 
 ```php
 <?php
@@ -25,23 +25,23 @@ use JulienLinard\Core\Application;
 use JulienLinard\Core\Controller\Controller;
 use JulienLinard\Core\View\View;
 
-// Bootstrap the application
+// Bootstrap de l'application
 $app = Application::create(__DIR__);
 $app->start();
 ```
 
-## 📋 Features
+## 📋 Fonctionnalités
 
-- ✅ **Application** - Main framework class
-- ✅ **DI Container** - Dependency injection with auto-wiring
-- ✅ **Controllers** - Base class with utility methods
-- ✅ **Views** - Template engine with layouts
-- ✅ **Models** - Base Model class with hydration
-- ✅ **Forms** - Form validation and error handling
-- ✅ **Session** - Session management with flash messages
-- ✅ **Middleware** - Integrated middleware system
-- ✅ **Config** - Configuration management
-- ✅ **Exceptions** - Centralized error handling
+- ✅ **Application** - Classe principale du framework
+- ✅ **Container DI** - Injection de dépendances avec auto-wiring
+- ✅ **Controllers** - Classe de base avec méthodes utilitaires
+- ✅ **Views** - Moteur de templates avec layouts
+- ✅ **Models** - Classe Model de base avec hydratation
+- ✅ **Forms** - Validation de formulaires et gestion d'erreurs
+- ✅ **Session** - Gestion des sessions avec flash messages
+- ✅ **Middleware** - Système de middlewares intégré
+- ✅ **Config** - Gestion de la configuration
+- ✅ **Exceptions** - Gestion centralisée des erreurs
 
 ## 📖 Documentation
 
@@ -50,23 +50,23 @@ $app->start();
 ```php
 use JulienLinard\Core\Application;
 
-// Create an application instance
+// Créer une instance de l'application
 $app = Application::create(__DIR__);
 
-// Get existing instance (may return null)
+// Récupérer l'instance existante (peut retourner null)
 $app = Application::getInstance();
 
-// Get instance or create if it doesn't exist (useful for error handlers)
+// Récupérer l'instance ou la créer si elle n'existe pas (utile pour les gestionnaires d'erreurs)
 $app = Application::getInstanceOrCreate(__DIR__);
 
-// Get instance or throw exception if it doesn't exist
+// Récupérer l'instance ou lancer une exception si elle n'existe pas
 $app = Application::getInstanceOrFail();
 
-// Configure view paths
+// Configurer les chemins des vues
 $app->setViewsPath(__DIR__ . '/views');
 $app->setPartialsPath(__DIR__ . '/views/_templates');
 
-// Start the application
+// Démarrer l'application
 $app->start();
 ```
 
@@ -80,7 +80,7 @@ class HomeController extends Controller
     public function index()
     {
         return $this->view('home/index', [
-            'title' => 'Home',
+            'title' => 'Accueil',
             'data' => []
         ]);
     }
@@ -102,11 +102,11 @@ class HomeController extends Controller
 ```php
 use JulienLinard\Core\View\View;
 
-// Complete view with layout
+// Vue complète avec layout
 $view = new View('home/index');
-$view->render(['title' => 'Home']);
+$view->render(['title' => 'Accueil']);
 
-// Partial view (without layout)
+// Vue partielle (sans layout)
 $view = new View('partials/header', false);
 $view->render();
 ```
@@ -132,7 +132,7 @@ class User extends Model
     }
 }
 
-// Automatic hydration
+// Hydratation automatique
 $user = new User(['id' => 1, 'email' => 'test@example.com', 'name' => 'John']);
 ```
 
@@ -149,17 +149,17 @@ $formResult = new FormResult();
 // Validation
 $validator = new Validator();
 if (!$validator->required($data['email'])) {
-    $formResult->addError(new FormError('Email required'));
+    $formResult->addError(new FormError('Email requis'));
 }
 
 if (!$validator->email($data['email'])) {
-    $formResult->addError(new FormError('Invalid email'));
+    $formResult->addError(new FormError('Email invalide'));
 }
 
 if ($formResult->hasErrors()) {
-    // Handle errors
+    // Gérer les erreurs
 } else {
-    $formResult->addSuccess(new FormSuccess('Form validated'));
+    $formResult->addSuccess(new FormSuccess('Formulaire validé'));
 }
 ```
 
@@ -168,27 +168,27 @@ if ($formResult->hasErrors()) {
 ```php
 use JulienLinard\Core\Session\Session;
 
-// Set a value
+// Définir une valeur
 Session::set('user_id', 123);
 
-// Get a value
+// Récupérer une valeur
 $userId = Session::get('user_id');
 
 // Flash message
-Session::flash('success', 'Operation successful');
+Session::flash('success', 'Opération réussie');
 
-// Remove
+// Supprimer
 Session::remove('user_id');
 ```
 
-### DI Container
+### Container DI
 
 ```php
 use JulienLinard\Core\Container\Container;
 
 $container = new Container();
 
-// Simple binding
+// Binding simple
 $container->bind('database', function() {
     return new Database();
 });
@@ -198,15 +198,15 @@ $container->singleton('logger', function() {
     return new Logger();
 });
 
-// Automatic resolution
+// Résolution automatique
 $service = $container->make(MyService::class);
 ```
 
-## 🔗 Integration with Other Packages
+## 🔗 Intégration avec les autres packages
 
-### Integration with php-router
+### Intégration avec php-router
 
-`core-php` automatically includes `php-router`. The router is accessible via `getRouter()`.
+`core-php` inclut automatiquement `php-router`. Le router est accessible via `getRouter()`.
 
 ```php
 use JulienLinard\Core\Application;
@@ -216,13 +216,13 @@ use JulienLinard\Router\Response;
 $app = Application::create(__DIR__);
 $router = $app->getRouter();
 
-// Define routes in your controllers
+// Définir des routes dans vos contrôleurs
 class HomeController extends \JulienLinard\Core\Controller\Controller
 {
     #[Route(path: '/', methods: ['GET'], name: 'home')]
     public function index(): Response
     {
-        return $this->view('home/index', ['title' => 'Home']);
+        return $this->view('home/index', ['title' => 'Accueil']);
     }
 }
 
@@ -230,25 +230,25 @@ $router->registerRoutes(HomeController::class);
 $app->start();
 ```
 
-### Integration with php-dotenv
+### Intégration avec php-dotenv
 
-`core-php` automatically includes `php-dotenv`. Use `loadEnv()` to load environment variables.
+`core-php` inclut automatiquement `php-dotenv`. Utilisez `loadEnv()` pour charger les variables d'environnement.
 
 ```php
 use JulienLinard\Core\Application;
 
 $app = Application::create(__DIR__);
 
-// Load the .env file
+// Charger le fichier .env
 $app->loadEnv();
 
-// Variables are now available in $_ENV
+// Les variables sont maintenant disponibles dans $_ENV
 echo $_ENV['DB_HOST'];
 ```
 
-### Integration with doctrine-php
+### Intégration avec doctrine-php
 
-Use `doctrine-php` to manage your entities in your controllers.
+Utilisez `doctrine-php` pour gérer vos entités dans vos contrôleurs.
 
 ```php
 use JulienLinard\Core\Controller\Controller;
@@ -276,9 +276,9 @@ class UserController extends Controller
 }
 ```
 
-### Integration with auth-php
+### Intégration avec auth-php
 
-Use `auth-php` to manage authentication in your controllers.
+Utilisez `auth-php` pour gérer l'authentification dans vos contrôleurs.
 
 ```php
 use JulienLinard\Core\Controller\Controller;
@@ -305,25 +305,25 @@ class DashboardController extends Controller
 }
 ```
 
-### Independent Component Usage
+### Utilisation indépendante des composants
 
-You can use `core-php` components independently without `Application`.
+Vous pouvez utiliser les composants de `core-php` indépendamment sans `Application`.
 
 #### Session standalone
 
 ```php
 use JulienLinard\Core\Session\Session;
 
-// Set a value
+// Définir une valeur
 Session::set('user_id', 123);
 
-// Get a value
+// Récupérer une valeur
 $userId = Session::get('user_id');
 
 // Flash message
-Session::flash('success', 'Operation successful');
+Session::flash('success', 'Opération réussie');
 
-// Remove
+// Supprimer
 Session::remove('user_id');
 ```
 
@@ -334,7 +334,7 @@ use JulienLinard\Core\Container\Container;
 
 $container = new Container();
 
-// Simple binding
+// Binding simple
 $container->bind('database', function() {
     return new Database();
 });
@@ -344,7 +344,7 @@ $container->singleton('logger', function() {
     return new Logger();
 });
 
-// Automatic resolution
+// Résolution automatique
 $service = $container->make(MyService::class);
 ```
 
@@ -353,11 +353,11 @@ $service = $container->make(MyService::class);
 ```php
 use JulienLinard\Core\View\View;
 
-// Complete view with layout
+// Vue complète avec layout
 $view = new View('home/index');
-$view->render(['title' => 'Home']);
+$view->render(['title' => 'Accueil']);
 
-// Partial view (without layout)
+// Vue partielle (sans layout)
 $view = new View('partials/header', false);
 $view->render();
 ```
@@ -375,17 +375,17 @@ $validator = new Validator();
 
 // Validation
 if (!$validator->required($data['email'])) {
-    $formResult->addError(new FormError('Email required'));
+    $formResult->addError(new FormError('Email requis'));
 }
 
 if (!$validator->email($data['email'])) {
-    $formResult->addError(new FormError('Invalid email'));
+    $formResult->addError(new FormError('Email invalide'));
 }
 
 if ($formResult->hasErrors()) {
-    // Handle errors
+    // Gérer les erreurs
 } else {
-    $formResult->addSuccess(new FormSuccess('Form validated'));
+    $formResult->addSuccess(new FormSuccess('Formulaire validé'));
 }
 ```
 
@@ -395,7 +395,7 @@ if ($formResult->hasErrors()) {
 
 #### `create(string $basePath): self`
 
-Creates a new application instance.
+Crée une nouvelle instance de l'application.
 
 ```php
 $app = Application::create(__DIR__);
@@ -403,7 +403,7 @@ $app = Application::create(__DIR__);
 
 #### `getInstance(): ?self`
 
-Returns the existing instance or null.
+Retourne l'instance existante ou null.
 
 ```php
 $app = Application::getInstance();
@@ -411,7 +411,7 @@ $app = Application::getInstance();
 
 #### `getInstanceOrCreate(?string $basePath = null): self`
 
-Returns the existing instance or creates it if it doesn't exist.
+Retourne l'instance existante ou la crée si elle n'existe pas.
 
 ```php
 $app = Application::getInstanceOrCreate(__DIR__);
@@ -419,7 +419,7 @@ $app = Application::getInstanceOrCreate(__DIR__);
 
 #### `getInstanceOrFail(): self`
 
-Returns the existing instance or throws an exception.
+Retourne l'instance existante ou lance une exception.
 
 ```php
 $app = Application::getInstanceOrFail();
@@ -427,7 +427,7 @@ $app = Application::getInstanceOrFail();
 
 #### `loadEnv(string $file = '.env'): self`
 
-Loads environment variables from a `.env` file.
+Charge les variables d'environnement depuis un fichier `.env`.
 
 ```php
 $app->loadEnv();
@@ -436,7 +436,7 @@ $app->loadEnv('.env.local');
 
 #### `setViewsPath(string $path): self`
 
-Sets the views path.
+Définit le chemin des vues.
 
 ```php
 $app->setViewsPath(__DIR__ . '/views');
@@ -444,7 +444,7 @@ $app->setViewsPath(__DIR__ . '/views');
 
 #### `setPartialsPath(string $path): self`
 
-Sets the partials path.
+Définit le chemin des partials.
 
 ```php
 $app->setPartialsPath(__DIR__ . '/views/_templates');
@@ -452,7 +452,7 @@ $app->setPartialsPath(__DIR__ . '/views/_templates');
 
 #### `getRouter(): Router`
 
-Returns the router instance.
+Retourne l'instance du router.
 
 ```php
 $router = $app->getRouter();
@@ -460,7 +460,7 @@ $router = $app->getRouter();
 
 #### `start(): void`
 
-Starts the application (starts the session).
+Démarre l'application (démarre la session).
 
 ```php
 $app->start();
@@ -468,7 +468,7 @@ $app->start();
 
 #### `handle(): void`
 
-Processes an HTTP request and sends the response.
+Traite une requête HTTP et envoie la réponse.
 
 ```php
 $app->handle();
@@ -478,15 +478,15 @@ $app->handle();
 
 #### `view(string $template, array $data = []): Response`
 
-Renders a view with data.
+Rend une vue avec les données.
 
 ```php
-return $this->view('home/index', ['title' => 'Home']);
+return $this->view('home/index', ['title' => 'Accueil']);
 ```
 
 #### `json(array $data, int $statusCode = 200): Response`
 
-Returns a JSON response.
+Retourne une réponse JSON.
 
 ```php
 return $this->json(['message' => 'Success'], 200);
@@ -494,7 +494,7 @@ return $this->json(['message' => 'Success'], 200);
 
 #### `redirect(string $url, int $statusCode = 302): Response`
 
-Redirects to a URL.
+Redirige vers une URL.
 
 ```php
 return $this->redirect('/login');
@@ -502,16 +502,17 @@ return $this->redirect('/login');
 
 ## 📝 License
 
-MIT License - See the LICENSE file for more details.
+MIT License - Voir le fichier LICENSE pour plus de détails.
 
-## 🤝 Contributing
+## 🤝 Contribution
 
-Contributions are welcome! Feel free to open an issue or a pull request.
+Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
 
-## 💝 Support the project
+## 💝 Soutenir le projet
 
-If this bundle is useful to you, consider [becoming a sponsor](https://github.com/sponsors/julien-lin) to support the development and maintenance of this open source project.
+Si ce bundle vous est utile, envisagez de [devenir un sponsor](https://github.com/sponsors/julien-lin) pour soutenir le développement et la maintenance de ce projet open source.
 
 ---
 
-**Developed with ❤️ by Julien Linard**
+**Développé avec ❤️ par Julien Linard**
+
