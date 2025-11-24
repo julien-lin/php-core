@@ -4,11 +4,11 @@
 
 ## 💝 Support the project
 
-If this bundle is useful to you, consider [becoming a sponsor](https://github.com/sponsors/julien-lin) to support the development and maintenance of this open source project.
+If this package is useful to you, consider [becoming a sponsor](https://github.com/sponsors/julien-lin) to support the development and maintenance of this open source project.
 
 ---
 
-A modern and complete MVC framework for PHP 8+ with DI Container, Controllers, Views, Forms, Session and more.
+A modern and complete MVC framework for PHP 8+ with Container DI, Controllers, Views, Forms, Session, Cache and more.
 
 ## 🚀 Installation
 
@@ -37,12 +37,13 @@ $app->start();
 ## 📋 Features
 
 - ✅ **Application** - Main framework class
-- ✅ **DI Container** - Dependency injection with auto-wiring
+- ✅ **Container DI** - Dependency injection with auto-wiring
 - ✅ **Controllers** - Base class with utility methods
 - ✅ **Views** - Template engine with layouts
 - ✅ **Models** - Base Model class with hydration
 - ✅ **Forms** - Form validation and error handling
 - ✅ **Session** - Session management with flash messages
+- ✅ **Cache** - Integrated caching system (php-cache)
 - ✅ **Middleware** - Integrated middleware system
 - ✅ **Config** - Configuration management
 - ✅ **Exceptions** - Centralized error handling
@@ -60,7 +61,7 @@ $app = Application::create(__DIR__);
 // Get existing instance (may return null)
 $app = Application::getInstance();
 
-// Get instance or create if it doesn't exist (useful for error handlers)
+// Get instance or create it if it doesn't exist (useful for error handlers)
 $app = Application::getInstanceOrCreate(__DIR__);
 
 // Get instance or throw exception if it doesn't exist
@@ -106,7 +107,7 @@ class HomeController extends Controller
 ```php
 use JulienLinard\Core\View\View;
 
-// Complete view with layout
+// Full view with layout
 $view = new View('home/index');
 $view->render(['title' => 'Home']);
 
@@ -206,7 +207,7 @@ $container->singleton('logger', function() {
 $service = $container->make(MyService::class);
 ```
 
-## 🔗 Integration with Other Packages
+## 🔗 Integration with other packages
 
 ### Integration with php-router
 
@@ -243,11 +244,67 @@ use JulienLinard\Core\Application;
 
 $app = Application::create(__DIR__);
 
-// Load the .env file
+// Load .env file
 $app->loadEnv();
 
 // Variables are now available in $_ENV
 echo $_ENV['DB_HOST'];
+```
+
+### Integration with php-cache
+
+`core-php` automatically includes `php-cache`. The caching system is available via the `Cache` class.
+
+```php
+use JulienLinard\Core\Application;
+use JulienLinard\Cache\Cache;
+
+$app = Application::create(__DIR__);
+
+// Initialize cache (optional, can be done in configuration)
+Cache::init([
+    'default' => 'file',
+    'drivers' => [
+        'file' => [
+            'path' => __DIR__ . '/cache',
+            'prefix' => 'app',
+            'ttl' => 3600,
+        ],
+    ],
+]);
+
+// Use cache in your controllers
+class ProductController extends \JulienLinard\Core\Controller\Controller
+{
+    #[Route(path: '/products/{id}', methods: ['GET'], name: 'product.show')]
+    public function show(int $id): Response
+    {
+        // Get from cache
+        $product = Cache::get("product_{$id}");
+        
+        if (!$product) {
+            // Load from database
+            $product = $this->loadProductFromDatabase($id);
+            
+            // Cache with tags
+            Cache::tags(['products', "product_{$id}"])->set("product_{$id}", $product, 3600);
+        }
+        
+        return $this->view('product/show', ['product' => $product]);
+    }
+    
+    #[Route(path: '/products/{id}', methods: ['DELETE'], name: 'product.delete')]
+    public function delete(int $id): Response
+    {
+        // Delete product
+        $this->deleteProductFromDatabase($id);
+        
+        // Invalidate cache
+        Cache::tags(["product_{$id}"])->flush();
+        
+        return $this->json(['success' => true]);
+    }
+}
 ```
 
 ### Integration with doctrine-php
@@ -309,7 +366,7 @@ class DashboardController extends Controller
 }
 ```
 
-### Independent Component Usage
+### Standalone component usage
 
 You can use `core-php` components independently without `Application`.
 
@@ -357,7 +414,7 @@ $service = $container->make(MyService::class);
 ```php
 use JulienLinard\Core\View\View;
 
-// Complete view with layout
+// Full view with layout
 $view = new View('home/index');
 $view->render(['title' => 'Home']);
 
@@ -512,10 +569,11 @@ MIT License - See the LICENSE file for more details.
 
 Contributions are welcome! Feel free to open an issue or a pull request.
 
-## 💝 Support the project
+## 💝 Support
 
-If this bundle is useful to you, consider [becoming a sponsor](https://github.com/sponsors/julien-lin) to support the development and maintenance of this open source project.
+If this package is useful to you, consider [becoming a sponsor](https://github.com/sponsors/julien-lin) to support the development and maintenance of this open source project.
 
 ---
 
 **Developed with ❤️ by Julien Linard**
+

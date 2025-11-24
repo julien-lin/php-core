@@ -1,14 +1,14 @@
 # Core PHP - Framework MVC Complet
 
-[🇬🇧 Lire en anglais](README.md) | [🇫🇷 Lire en français](README.fr.md)
+[🇫🇷 Lire en français](README.fr.md) | [🇬🇧 Read in English](README.md)
 
 ## 💝 Soutenir le projet
 
-Si ce bundle vous est utile, envisagez de [devenir un sponsor](https://github.com/sponsors/julien-lin) pour soutenir le développement et la maintenance de ce projet open source.
+Si ce package vous est utile, envisagez de [devenir un sponsor](https://github.com/sponsors/julien-lin) pour soutenir le développement et la maintenance de ce projet open source.
 
 ---
 
-Un framework MVC moderne et complet pour PHP 8+ avec Container DI, Controllers, Views, Forms, Session et plus.
+Un framework MVC moderne et complet pour PHP 8+ avec Container DI, Controllers, Views, Forms, Session, Cache et plus.
 
 ## 🚀 Installation
 
@@ -43,6 +43,7 @@ $app->start();
 - ✅ **Models** - Classe Model de base avec hydratation
 - ✅ **Forms** - Validation de formulaires et gestion d'erreurs
 - ✅ **Session** - Gestion des sessions avec flash messages
+- ✅ **Cache** - Système de cache intégré (php-cache)
 - ✅ **Middleware** - Système de middlewares intégré
 - ✅ **Config** - Gestion de la configuration
 - ✅ **Exceptions** - Gestion centralisée des erreurs
@@ -250,6 +251,62 @@ $app->loadEnv();
 echo $_ENV['DB_HOST'];
 ```
 
+### Intégration avec php-cache
+
+`core-php` inclut automatiquement `php-cache`. Le système de cache est disponible via la classe `Cache`.
+
+```php
+use JulienLinard\Core\Application;
+use JulienLinard\Cache\Cache;
+
+$app = Application::create(__DIR__);
+
+// Initialiser le cache (optionnel, peut être fait dans la configuration)
+Cache::init([
+    'default' => 'file',
+    'drivers' => [
+        'file' => [
+            'path' => __DIR__ . '/cache',
+            'prefix' => 'app',
+            'ttl' => 3600,
+        ],
+    ],
+]);
+
+// Utiliser le cache dans vos contrôleurs
+class ProductController extends \JulienLinard\Core\Controller\Controller
+{
+    #[Route(path: '/products/{id}', methods: ['GET'], name: 'product.show')]
+    public function show(int $id): Response
+    {
+        // Récupérer depuis le cache
+        $product = Cache::get("product_{$id}");
+        
+        if (!$product) {
+            // Charger depuis la base de données
+            $product = $this->loadProductFromDatabase($id);
+            
+            // Mettre en cache avec tags
+            Cache::tags(['products', "product_{$id}"])->set("product_{$id}", $product, 3600);
+        }
+        
+        return $this->view('product/show', ['product' => $product]);
+    }
+    
+    #[Route(path: '/products/{id}', methods: ['DELETE'], name: 'product.delete')]
+    public function delete(int $id): Response
+    {
+        // Supprimer le produit
+        $this->deleteProductFromDatabase($id);
+        
+        // Invalider le cache
+        Cache::tags(["product_{$id}"])->flush();
+        
+        return $this->json(['success' => true]);
+    }
+}
+```
+
 ### Intégration avec doctrine-php
 
 Utilisez `doctrine-php` pour gérer vos entités dans vos contrôleurs.
@@ -393,7 +450,7 @@ if ($formResult->hasErrors()) {
 }
 ```
 
-## 📚 API Reference
+## 📚 Référence API
 
 ### Application
 
@@ -512,9 +569,9 @@ MIT License - Voir le fichier LICENSE pour plus de détails.
 
 Les contributions sont les bienvenues ! N'hésitez pas à ouvrir une issue ou une pull request.
 
-## 💝 Soutenir le projet
+## 💝 Support
 
-Si ce bundle vous est utile, envisagez de [devenir un sponsor](https://github.com/sponsors/julien-lin) pour soutenir le développement et la maintenance de ce projet open source.
+Si ce package vous est utile, envisagez de [devenir un sponsor](https://github.com/sponsors/julien-lin) pour soutenir le développement et la maintenance de ce projet open source.
 
 ---
 
