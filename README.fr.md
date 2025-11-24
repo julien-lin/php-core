@@ -41,7 +41,7 @@ $app->start();
 - ✅ **Controllers** - Classe de base avec méthodes utilitaires
 - ✅ **Views** - Moteur de templates avec layouts
 - ✅ **Models** - Classe Model de base avec hydratation
-- ✅ **Forms** - Validation de formulaires et gestion d'erreurs
+- ✅ **Forms** - Validation de formulaires et gestion d'erreurs (alimenté par php-validator)
 - ✅ **Session** - Gestion des sessions avec flash messages
 - ✅ **Cache** - Système de cache intégré (php-cache)
 - ✅ **Middleware** - Système de middlewares intégré
@@ -143,6 +143,61 @@ $user = new User(['id' => 1, 'email' => 'test@example.com', 'name' => 'John']);
 
 ### Forms & Validation
 
+`core-php` inclut `php-validator` pour une validation de formulaires avancée avec règles personnalisées, messages multilingues et sanitization.
+
+#### Utilisation de la méthode validate() (Recommandé)
+
+```php
+use JulienLinard\Core\Form\Validator;
+
+$validator = new Validator();
+$result = $validator->validate($data, [
+    'email' => 'required|email',
+    'password' => 'required|min:8|max:255',
+    'age' => 'required|numeric|min:18'
+]);
+
+if ($result->hasErrors()) {
+    // Récupérer toutes les erreurs
+    foreach ($result->getErrors() as $error) {
+        echo $error->getMessage() . "\n";
+    }
+    
+    // Récupérer les erreurs d'un champ spécifique
+    $emailErrors = $result->getErrorsForField('email');
+} else {
+    // Validation réussie
+}
+```
+
+#### Fonctionnalités avancées
+
+```php
+use JulienLinard\Core\Form\Validator;
+
+$validator = new Validator();
+
+// Messages d'erreur personnalisés
+$validator->setCustomMessages([
+    'email.email' => 'Veuillez entrer une adresse email valide',
+    'password.min' => 'Le mot de passe doit contenir au moins 8 caractères'
+]);
+
+// Définir la locale pour les messages multilingues
+$validator->setLocale('fr');
+
+// Activer/désactiver la sanitization automatique
+$validator->setSanitize(true);
+
+// Enregistrer des règles de validation personnalisées
+$validator->registerRule(new CustomRule());
+
+// Valider
+$result = $validator->validate($data, $rules);
+```
+
+#### Validation manuelle (Méthode legacy)
+
 ```php
 use JulienLinard\Core\Form\FormResult;
 use JulienLinard\Core\Form\FormError;
@@ -150,9 +205,9 @@ use JulienLinard\Core\Form\FormSuccess;
 use JulienLinard\Core\Form\Validator;
 
 $formResult = new FormResult();
-
-// Validation
 $validator = new Validator();
+
+// Validation manuelle
 if (!$validator->required($data['email'])) {
     $formResult->addError(new FormError('Email requis'));
 }
@@ -249,6 +304,31 @@ $app->loadEnv();
 
 // Les variables sont maintenant disponibles dans $_ENV
 echo $_ENV['DB_HOST'];
+```
+
+### Intégration avec php-validator
+
+`core-php` inclut automatiquement `php-validator`. La classe `Core\Form\Validator` utilise `php-validator` en interne, offrant des fonctionnalités de validation avancées tout en maintenant la compatibilité rétroactive.
+
+```php
+use JulienLinard\Core\Form\Validator;
+
+$validator = new Validator();
+
+// Utiliser les fonctionnalités avancées
+$validator->setCustomMessages(['email.email' => 'Email invalide']);
+$validator->setLocale('fr');
+$validator->setSanitize(true);
+
+// Valider avec des règles
+$result = $validator->validate($data, [
+    'email' => 'required|email',
+    'password' => 'required|min:8'
+]);
+
+// Accéder à l'instance php-validator sous-jacente pour les fonctionnalités avancées
+$phpValidator = $validator->getPhpValidator();
+$phpValidator->registerRule(new CustomRule());
 ```
 
 ### Intégration avec php-cache
@@ -426,27 +506,21 @@ $view->render();
 #### Form standalone
 
 ```php
-use JulienLinard\Core\Form\FormResult;
-use JulienLinard\Core\Form\FormError;
-use JulienLinard\Core\Form\FormSuccess;
 use JulienLinard\Core\Form\Validator;
 
-$formResult = new FormResult();
 $validator = new Validator();
 
-// Validation
-if (!$validator->required($data['email'])) {
-    $formResult->addError(new FormError('Email requis'));
-}
+// Valider avec des règles
+$result = $validator->validate($data, [
+    'email' => 'required|email',
+    'password' => 'required|min:8'
+]);
 
-if (!$validator->email($data['email'])) {
-    $formResult->addError(new FormError('Email invalide'));
-}
-
-if ($formResult->hasErrors()) {
+if ($result->hasErrors()) {
     // Gérer les erreurs
-} else {
-    $formResult->addSuccess(new FormSuccess('Formulaire validé'));
+    foreach ($result->getErrors() as $error) {
+        echo $error->getMessage() . "\n";
+    }
 }
 ```
 
