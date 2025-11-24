@@ -2,11 +2,28 @@
 
 namespace JulienLinard\Core\Form;
 
+use JulienLinard\Validator\Validator as PhpValidator;
+use JulienLinard\Validator\ValidationResult as PhpValidationResult;
+
 /**
- * Validateur de formulaires
+ * Validateur de formulaires utilisant php-validator
+ * 
+ * Cette classe est un wrapper autour de php-validator qui maintient
+ * la compatibilité avec l'API existante de core-php tout en bénéficiant
+ * des fonctionnalités avancées de php-validator.
  */
 class Validator
 {
+    /**
+     * Instance du validateur php-validator
+     */
+    private PhpValidator $validator;
+
+    public function __construct()
+    {
+        $this->validator = new PhpValidator();
+    }
+
     /**
      * Vérifie qu'une valeur n'est pas vide
      */
@@ -102,59 +119,97 @@ class Validator
 
     /**
      * Valide un tableau de données avec des règles
+     * 
+     * Utilise php-validator en interne pour bénéficier de toutes ses fonctionnalités
+     * (règles personnalisées, messages multilingues, sanitization, etc.)
      *
      * @param array $data Données à valider
      * @param array $rules Règles de validation ['field' => 'required|email|min:5']
-     * @return FormResult Résultat de la validation
+     * @return FormResult Résultat de la validation (compatible avec l'API existante)
      */
     public function validate(array $data, array $rules): FormResult
     {
-        $result = new FormResult();
+        // Utiliser php-validator pour la validation
+        $phpResult = $this->validator->validate($data, $rules);
+        
+        // Convertir le résultat en FormResult pour la compatibilité
+        return $this->convertToFormResult($phpResult);
+    }
 
-        foreach ($rules as $field => $ruleString) {
-            $value = $data[$field] ?? null;
-            $rulesList = explode('|', $ruleString);
+    /**
+     * Convertit un ValidationResult de php-validator en FormResult de core-php
+     */
+    private function convertToFormResult(PhpValidationResult $phpResult): FormResult
+    {
+        $formResult = new FormResult();
 
-            foreach ($rulesList as $rule) {
-                $ruleParts = explode(':', $rule);
-                $ruleName = $ruleParts[0];
-                $ruleParam = $ruleParts[1] ?? null;
-
-                switch ($ruleName) {
-                    case 'required':
-                        if (!$this->required($value)) {
-                            $result->addError(new FormError("Le champ {$field} est requis.", $field));
-                        }
-                        break;
-
-                    case 'email':
-                        if ($value !== null && !$this->email($value)) {
-                            $result->addError(new FormError("Le champ {$field} doit être un email valide.", $field));
-                        }
-                        break;
-
-                    case 'min':
-                        if ($value !== null && $ruleParam !== null && !$this->min($value, (int)$ruleParam)) {
-                            $result->addError(new FormError("Le champ {$field} doit contenir au moins {$ruleParam} caractères.", $field));
-                        }
-                        break;
-
-                    case 'max':
-                        if ($value !== null && $ruleParam !== null && !$this->max($value, (int)$ruleParam)) {
-                            $result->addError(new FormError("Le champ {$field} ne doit pas dépasser {$ruleParam} caractères.", $field));
-                        }
-                        break;
-
-                    case 'numeric':
-                        if ($value !== null && !$this->numeric($value)) {
-                            $result->addError(new FormError("Le champ {$field} doit être un nombre.", $field));
-                        }
-                        break;
-                }
+        // Convertir les erreurs
+        foreach ($phpResult->getErrors() as $field => $errors) {
+            foreach ($errors as $errorMessage) {
+                $formResult->addError(new FormError($errorMessage, $field));
             }
         }
 
-        return $result;
+        return $formResult;
+    }
+
+    /**
+     * Définit les messages personnalisés
+     * 
+     * @param array<string, string|array<string>> $messages Messages personnalisés
+     * @return self
+     */
+    public function setCustomMessages(array $messages): self
+    {
+        $this->validator->setCustomMessages($messages);
+        return $this;
+    }
+
+    /**
+     * Définit la locale pour les messages d'erreur
+     * 
+     * @param string $locale Locale (ex: 'fr', 'en')
+     * @return self
+     */
+    public function setLocale(string $locale): self
+    {
+        $this->validator->setLocale($locale);
+        return $this;
+    }
+
+    /**
+     * Active ou désactive la sanitization automatique
+     * 
+     * @param bool $sanitize Activer la sanitization
+     * @return self
+     */
+    public function setSanitize(bool $sanitize): self
+    {
+        $this->validator->setSanitize($sanitize);
+        return $this;
+    }
+
+    /**
+     * Enregistre une règle personnalisée
+     * 
+     * @param \JulienLinard\Validator\Rules\RuleInterface $rule Règle personnalisée
+     * @return self
+     */
+    public function registerRule(\JulienLinard\Validator\Rules\RuleInterface $rule): self
+    {
+        $this->validator->registerRule($rule);
+        return $this;
+    }
+
+    /**
+     * Récupère l'instance du validateur php-validator
+     * 
+     * Permet d'accéder directement aux fonctionnalités avancées de php-validator
+     * 
+     * @return PhpValidator
+     */
+    public function getPhpValidator(): PhpValidator
+    {
+        return $this->validator;
     }
 }
-
