@@ -35,7 +35,8 @@
         "php": ">=8.0",
         "julienlinard/php-router": "^1.0",
         "julienlinard/php-dotenv": "^1.0",
-        "julienlinard/php-cache": "^1.0"
+        "julienlinard/php-cache": "^1.0",
+        "julienlinard/php-validator": "^1.0"
     },
     "autoload": {
         "psr-4": {
@@ -56,6 +57,6 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "version": "1.0.7"
+    "version": "1.0.8"
 }
 
