@@ -298,6 +298,41 @@ return [
 ];
 ```
 
+### Système d'Événements
+
+Le framework inclut un système d'événements (EventDispatcher) pour l'extensibilité.
+
+#### Utilisation
+
+```php
+use JulienLinard\Core\Application;
+use JulienLinard\Core\Events\EventDispatcher;
+
+$app = Application::create(__DIR__);
+$events = $app->getEvents();
+
+// Écouter un événement
+$events->listen('request.started', function(array $data) {
+    $request = $data['request'];
+    // Log la requête, etc.
+});
+
+$events->listen('exception.thrown', function(array $data) {
+    $exception = $data['exception'];
+    // Envoyer une notification, etc.
+});
+
+// Déclencher un événement personnalisé
+$events->dispatch('user.created', ['user' => $user]);
+```
+
+#### Événements intégrés
+
+- `request.started` : Déclenché au début du traitement d'une requête
+- `response.created` : Déclenché après la création de la réponse
+- `response.sent` : Déclenché après l'envoi de la réponse
+- `exception.thrown` : Déclenché lorsqu'une exception est levée
+
 ### Intégration avec php-router
 
 `core-php` inclut automatiquement `php-router`. Le router est accessible via `getRouter()`.
