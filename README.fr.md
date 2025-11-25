@@ -635,6 +635,136 @@ Redirige vers une URL.
 return $this->redirect('/login');
 ```
 
+#### `back(): Response`
+
+Redirige vers la page précédente (si disponible).
+
+```php
+return $this->back();
+```
+
+**Note importante** : Toutes les méthodes du Controller (`view()`, `redirect()`, `json()`, `back()`) retournent maintenant une `Response` au lieu d'appeler `exit()`. Cela permet le chaînage de middlewares et facilite les tests.
+
+### Gestion d'Erreurs
+
+Le framework inclut un système de gestion d'erreurs amélioré avec logging et pages d'erreur personnalisables.
+
+#### ErrorHandler
+
+```php
+use JulienLinard\Core\ErrorHandler;
+use JulienLinard\Core\Exceptions\NotFoundException;
+use JulienLinard\Core\Exceptions\ValidationException;
+
+// L'ErrorHandler est automatiquement utilisé par Application
+$app = Application::create(__DIR__);
+
+// Personnaliser l'ErrorHandler
+$errorHandler = new ErrorHandler($app, $logger, $debug, $viewsPath);
+$app->setErrorHandler($errorHandler);
+```
+
+#### Exceptions personnalisées
+
+```php
+// NotFoundException (404)
+throw new NotFoundException('Utilisateur non trouvé');
+
+// ValidationException (422)
+throw new ValidationException('Erreur de validation', [
+    'email' => 'Email invalide',
+    'password' => 'Mot de passe trop court'
+]);
+```
+
+#### Pages d'erreur personnalisables
+
+Créez des vues dans `views/errors/` pour personnaliser les pages d'erreur :
+
+- `views/errors/404.html.php` - Page 404
+- `views/errors/422.html.php` - Page de validation
+- `views/errors/500.html.php` - Page d'erreur serveur
+
+```php
+<!-- views/errors/404.html.php -->
+<h1><?= htmlspecialchars($title) ?></h1>
+<p><?= htmlspecialchars($message) ?></p>
+```
+
+### Protection CSRF
+
+Le framework inclut un middleware CSRF pour protéger vos formulaires.
+
+#### Utilisation du middleware CSRF
+
+```php
+use JulienLinard\Core\Middleware\CsrfMiddleware;
+use JulienLinard\Core\Application;
+
+$app = Application::create(__DIR__);
+$router = $app->getRouter();
+
+// Ajouter le middleware CSRF globalement
+$router->addMiddleware(new CsrfMiddleware());
+```
+
+#### Helpers CSRF dans les vues
+
+```php
+use JulienLinard\Core\View\ViewHelper;
+
+// Dans vos formulaires
+<form method="POST">
+    <?= ViewHelper::csrfField() ?>
+    <!-- autres champs -->
+</form>
+
+// Ou récupérer juste le token
+$token = ViewHelper::csrfToken();
+```
+
+#### Configuration CSRF
+
+```php
+// Personnaliser le nom du champ et la clé de session
+$csrf = new CsrfMiddleware(
+    tokenName: '_csrf_token',  // Nom du champ dans le formulaire
+    sessionKey: '_csrf_token'  // Clé dans la session
+);
+```
+
+Le middleware CSRF :
+- Génère automatiquement un token pour les requêtes GET
+- Valide le token pour POST, PUT, PATCH, DELETE
+- Accepte le token via POST data ou header `X-CSRF-TOKEN`
+- Génère un nouveau token après chaque validation
+
+### ViewHelper - Helpers pour les vues
+
+```php
+use JulienLinard\Core\View\ViewHelper;
+
+// Échapper du HTML
+echo ViewHelper::escape($userInput);
+echo ViewHelper::e($userInput); // Alias court
+
+// Formater une date
+echo ViewHelper::date($date, 'd/m/Y H:i');
+
+// Formater un nombre
+echo ViewHelper::number(1234.56, 2); // "1 234,56"
+
+// Formater un prix
+echo ViewHelper::price(99.99); // "99,99 €"
+
+// Tronquer une chaîne
+echo ViewHelper::truncate($longText, 100);
+
+// Token CSRF
+echo ViewHelper::csrfToken();
+echo ViewHelper::csrfField();
+```
+
 ## 📝 License
 
 MIT License - Voir le fichier LICENSE pour plus de détails.

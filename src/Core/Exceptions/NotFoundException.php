@@ -1,0 +1,11 @@
+<?php
+
+namespace JulienLinard\Core\Exceptions;
+
+/**
+ * Exception levée lorsqu'une ressource n'est pas trouvée (404)
+ */
+class NotFoundException extends FrameworkException
+{
+}
+

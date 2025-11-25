@@ -17,12 +17,13 @@ abstract class Controller implements ControllerInterface
      * @param string $name Nom de la vue (ex: 'home/index')
      * @param array $data Données à passer à la vue
      * @param bool $complete Si true, inclut le layout (header/footer)
-     * @return void
+     * @return Response Réponse HTTP avec le contenu de la vue
      */
-    protected function view(string $name, array $data = [], bool $complete = true): void
+    protected function view(string $name, array $data = [], bool $complete = true): Response
     {
         $view = new View($name, $complete);
-        $view->render($data);
+        $content = $view->render($data);
+        return new Response(200, $content);
     }
 
     /**
@@ -31,24 +32,25 @@ abstract class Controller implements ControllerInterface
      * @param string $uri URI de destination
      * @param int $status Code de statut HTTP (302 par défaut)
      * @param array $headers Headers additionnels
-     * @return void
+     * @return Response Réponse HTTP de redirection
      */
-    protected function redirect(string $uri, int $status = 302, array $headers = []): void
+    protected function redirect(string $uri, int $status = 302, array $headers = []): Response
     {
-        // Définir le code de statut HTTP
-        http_response_code($status);
-
+        // Nettoyer l'URI pour éviter les injections
+        $uri = $this->sanitizeHeaderValue($uri);
+        
+        // Créer la réponse avec le header Location
+        $response = new Response($status);
+        $response->setHeader('Location', $uri);
+        
         // Ajouter les headers personnalisés (sécurisés)
         foreach ($headers as $name => $value) {
             $name = $this->sanitizeHeaderName($name);
             $value = $this->sanitizeHeaderValue($value);
-            header("$name: $value");
+            $response->setHeader($name, $value);
         }
-
-        // Rediriger vers l'URI
-        $uri = $this->sanitizeHeaderValue($uri);
-        header("Location: $uri");
-        exit();
+        
+        return $response;
     }
 
     /**
@@ -56,22 +58,22 @@ abstract class Controller implements ControllerInterface
      *
      * @param array $data Données à encoder en JSON
      * @param int $status Code de statut HTTP (200 par défaut)
-     * @return void
+     * @return Response Réponse HTTP JSON
      */
-    protected function json(array $data, int $status = 200): void
+    protected function json(array $data, int $status = 200): Response
     {
-        $response = Response::json($data, $status);
-        $response->send();
-        exit();
+        return Response::json($data, $status);
     }
 
     /**
      * Retourne à la page précédente (si disponible)
+     * 
+     * @return Response Réponse HTTP de redirection
      */
-    protected function back(): void
+    protected function back(): Response
     {
         $referer = $_SERVER['HTTP_REFERER'] ?? '/';
-        $this->redirect($referer);
+        return $this->redirect($referer);
     }
 
     /**
@@ -99,7 +101,7 @@ abstract class Controller implements ControllerInterface
      */
     protected function app(): Application
     {
-        return Application::getInstance();
+        return Application::getInstanceOrFail();
     }
 }
 

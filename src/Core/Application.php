@@ -5,6 +5,7 @@ namespace JulienLinard\Core;
 use JulienLinard\Router\Router;
 use JulienLinard\Core\Container\Container;
 use JulienLinard\Core\Config\Config;
+use JulienLinard\Core\ErrorHandler;
 use JulienLinard\Dotenv\Dotenv;
 
 /**
@@ -20,6 +21,7 @@ class Application
     private string $viewsPath;
     private string $partialsPath;
     private bool $started = false;
+    private ?ErrorHandler $errorHandler = null;
 
     /**
      * Constructeur privé (utiliser create())
@@ -30,6 +32,9 @@ class Application
         $this->container = new Container();
         $this->router = new Router();
         $this->config = new Config();
+        
+        // Passer le Container au Router pour l'injection de dépendances
+        $this->router->setContainer($this->container);
         
         // Chemins par défaut
         $this->viewsPath = $this->basePath . DIRECTORY_SEPARATOR . 'views';
@@ -142,27 +147,31 @@ class Application
             $response = $this->router->handle($request);
             $response->send();
         } catch (\Throwable $e) {
-            $this->handleException($e);
+            $errorHandler = $this->getErrorHandler();
+            $response = $errorHandler->handle($e);
+            $response->send();
         }
     }
 
     /**
-     * Gère les exceptions
+     * Retourne le gestionnaire d'erreurs
      */
-    private function handleException(\Throwable $e): void
+    public function getErrorHandler(): ErrorHandler
     {
-        if (php_sapi_name() === 'cli') {
-            echo $e->getMessage() . "\n";
-            echo $e->getTraceAsString() . "\n";
-            return;
+        if ($this->errorHandler === null) {
+            $debug = $this->config->get('app.debug', false);
+            $this->errorHandler = new ErrorHandler($this, null, $debug);
         }
+        return $this->errorHandler;
+    }
 
-        http_response_code(500);
-        echo '<h1>Erreur serveur</h1>';
-        if ($this->config->get('app.debug', false)) {
-            echo '<pre>' . htmlspecialchars($e->getMessage()) . '</pre>';
-            echo '<pre>' . htmlspecialchars($e->getTraceAsString()) . '</pre>';
-        }
+    /**
+     * Définit le gestionnaire d'erreurs personnalisé
+     */
+    public function setErrorHandler(ErrorHandler $errorHandler): self
+    {
+        $this->errorHandler = $errorHandler;
+        return $this;
     }
 
     /**

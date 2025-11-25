@@ -2,6 +2,8 @@
 
 namespace JulienLinard\Core\View;
 
+use JulienLinard\Core\Middleware\CsrfMiddleware;
+
 /**
  * Helpers pour les vues
  */
@@ -85,6 +87,27 @@ class ViewHelper
         }
         
         return mb_substr($string, 0, $length) . $suffix;
+    }
+
+    /**
+     * Retourne le token CSRF actuel
+     *
+     * @return string Token CSRF
+     */
+    public static function csrfToken(): string
+    {
+        return CsrfMiddleware::getToken();
+    }
+
+    /**
+     * Génère un champ hidden pour le token CSRF dans les formulaires
+     *
+     * @param string $tokenName Nom du champ (par défaut: '_token')
+     * @return string HTML du champ hidden
+     */
+    public static function csrfField(string $tokenName = '_token'): string
+    {
+        return CsrfMiddleware::field($tokenName);
     }
 }
 
