@@ -264,6 +264,40 @@ $service = $container->make(MyService::class);
 
 ## 🔗 Intégration avec les autres packages
 
+### Configuration centralisée
+
+Le framework permet de charger la configuration depuis des fichiers PHP dans un répertoire `config/`.
+
+```php
+use JulienLinard\Core\Application;
+
+$app = Application::create(__DIR__);
+
+// Charger la configuration depuis config/
+$app->loadConfig('config');
+
+// Les fichiers config/app.php, config/database.php, etc. sont automatiquement chargés
+// Accessible via $app->getConfig()->get('app.name')
+```
+
+**Structure recommandée** :
+```
+config/
+  app.php      # Configuration de l'application
+  database.php # Configuration de la base de données
+  cache.php    # Configuration du cache
+```
+
+**Exemple config/app.php** :
+```php
+<?php
+return [
+    'name' => 'Mon Application',
+    'debug' => true,
+    'timezone' => 'Europe/Paris',
+];
+```
+
 ### Intégration avec php-router
 
 `core-php` inclut automatiquement `php-router`. Le router est accessible via `getRouter()`.
@@ -691,6 +725,41 @@ Créez des vues dans `views/errors/` pour personnaliser les pages d'erreur :
 <p><?= htmlspecialchars($message) ?></p>
 ```
 
+### Système d'Événements
+
+Le framework inclut un système d'événements (EventDispatcher) pour l'extensibilité.
+
+#### Utilisation
+
+```php
+use JulienLinard\Core\Application;
+use JulienLinard\Core\Events\EventDispatcher;
+
+$app = Application::create(__DIR__);
+$events = $app->getEvents();
+
+// Écouter un événement
+$events->listen('request.started', function(array $data) {
+    $request = $data['request'];
+    // Log la requête, etc.
+});
+
+$events->listen('exception.thrown', function(array $data) {
+    $exception = $data['exception'];
+    // Envoyer une notification, etc.
+});
+
+// Déclencher un événement personnalisé
+$events->dispatch('user.created', ['user' => $user]);
+```
+
+#### Événements intégrés
+
+- `request.started` : Déclenché au début du traitement d'une requête
+- `response.created` : Déclenché après la création de la réponse
+- `response.sent` : Déclenché après l'envoi de la réponse
+- `exception.thrown` : Déclenché lorsqu'une exception est levée
+
 ### Protection CSRF
 
 Le framework inclut un middleware CSRF pour protéger vos formulaires.
@@ -763,6 +832,10 @@ echo ViewHelper::truncate($longText, 100);
 // Token CSRF
 echo ViewHelper::csrfToken();
 echo ViewHelper::csrfField();
+
+// Générer une URL depuis le nom d'une route
+$url = ViewHelper::route('user.show', ['id' => 123]);
+$url = ViewHelper::route('users.index', [], ['page' => 2]); // Avec query params
 ```
 
 ## 📝 License

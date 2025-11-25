@@ -6,6 +6,7 @@ use JulienLinard\Router\Router;
 use JulienLinard\Core\Container\Container;
 use JulienLinard\Core\Config\Config;
 use JulienLinard\Core\ErrorHandler;
+use JulienLinard\Core\Events\EventDispatcher;
 use JulienLinard\Dotenv\Dotenv;
 
 /**
@@ -22,6 +23,7 @@ class Application
     private string $partialsPath;
     private bool $started = false;
     private ?ErrorHandler $errorHandler = null;
+    private EventDispatcher $events;
 
     /**
      * Constructeur privé (utiliser create())
@@ -32,6 +34,7 @@ class Application
         $this->container = new Container();
         $this->router = new Router();
         $this->config = new Config();
+        $this->events = new EventDispatcher();
         
         // Passer le Container au Router pour l'injection de dépendances
         $this->router->setContainer($this->container);
@@ -44,6 +47,7 @@ class Application
         $this->container->singleton(Application::class, fn() => $this);
         $this->container->singleton(Router::class, fn() => $this->router);
         $this->container->singleton(Container::class, fn() => $this->container);
+        $this->container->singleton(EventDispatcher::class, fn() => $this->events);
     }
 
     /**
@@ -119,6 +123,19 @@ class Application
     }
 
     /**
+     * Charge la configuration depuis un répertoire de fichiers PHP
+     * 
+     * @param string $configPath Chemin vers le répertoire de configuration (ex: 'config')
+     * @return self
+     */
+    public function loadConfig(string $configPath = 'config'): self
+    {
+        $fullPath = $this->basePath . DIRECTORY_SEPARATOR . $configPath;
+        \JulienLinard\Core\Config\ConfigLoader::loadInto($this->config, $fullPath);
+        return $this;
+    }
+
+    /**
      * Démarre l'application
      */
     public function start(): void
@@ -144,9 +161,23 @@ class Application
         
         try {
             $request = new \JulienLinard\Router\Request();
+            
+            // Déclencher l'événement request.started
+            $this->events->dispatch('request.started', ['request' => $request]);
+            
             $response = $this->router->handle($request);
+            
+            // Déclencher l'événement response.created
+            $this->events->dispatch('response.created', ['response' => $response]);
+            
             $response->send();
+            
+            // Déclencher l'événement response.sent
+            $this->events->dispatch('response.sent', ['response' => $response]);
         } catch (\Throwable $e) {
+            // Déclencher l'événement exception.thrown
+            $this->events->dispatch('exception.thrown', ['exception' => $e]);
+            
             $errorHandler = $this->getErrorHandler();
             $response = $errorHandler->handle($e);
             $response->send();
@@ -196,6 +227,14 @@ class Application
     public function getConfig(): Config
     {
         return $this->config;
+    }
+
+    /**
+     * Retourne le gestionnaire d'événements
+     */
+    public function getEvents(): EventDispatcher
+    {
+        return $this->events;
     }
 
     /**

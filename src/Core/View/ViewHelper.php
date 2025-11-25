@@ -109,5 +109,20 @@ class ViewHelper
     {
         return CsrfMiddleware::field($tokenName);
     }
+
+    /**
+     * Génère une URL depuis le nom d'une route
+     *
+     * @param string $name Nom de la route
+     * @param array $params Paramètres de route (pour routes dynamiques)
+     * @param array $queryParams Paramètres de query string
+     * @return string|null URL générée ou null si la route n'existe pas
+     */
+    public static function route(string $name, array $params = [], array $queryParams = []): ?string
+    {
+        $app = \JulienLinard\Core\Application::getInstanceOrFail();
+        $router = $app->getRouter();
+        return $router->url($name, $params, $queryParams);
+    }
 }
 
