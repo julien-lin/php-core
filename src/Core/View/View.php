@@ -40,15 +40,11 @@ class View
      * Rendu de la vue
      *
      * @param array $data Données à passer à la vue
-     * @return void
+     * @return string Contenu rendu de la vue
      */
-    public function render(?array $data = []): void
+    public function render(?array $data = []): string
     {
-        $app = Application::getInstance();
-        
-        if ($app === null) {
-            throw new \RuntimeException('L\'application n\'a pas été initialisée.');
-        }
+        $app = Application::getInstanceOrFail();
 
         $viewsPath = $app->getViewsPath();
         $partialsPath = $app->getPartialsPath();
@@ -88,11 +84,8 @@ class View
             }
         }
 
-        // Libérer le cache et afficher
-        ob_end_flush();
-        
-        // Arrêter l'exécution après le rendu de la vue
-        exit();
+        // Récupérer le contenu et retourner
+        return ob_get_clean();
     }
 
     /**
@@ -125,11 +118,14 @@ class View
 
     /**
      * Crée une nouvelle vue (méthode statique helper)
+     * 
+     * @deprecated Utiliser render() qui retourne le contenu au lieu de l'afficher
      */
     public static function make(string $name, array $data = [], bool $complete = true): void
     {
         $view = new self($name, $complete);
-        $view->render($data);
+        echo $view->render($data);
+        exit();
     }
 }
 
