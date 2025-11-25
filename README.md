@@ -691,6 +691,75 @@ Create views in `views/errors/` to customize error pages:
 <p><?= htmlspecialchars($message) ?></p>
 ```
 
+### Event System
+
+The framework includes an event system (EventDispatcher) for extensibility.
+
+#### Usage
+
+```php
+use JulienLinard\Core\Application;
+use JulienLinard\Core\Events\EventDispatcher;
+
+$app = Application::create(__DIR__);
+$events = $app->getEvents();
+
+// Listen to an event
+$events->listen('request.started', function(array $data) {
+    $request = $data['request'];
+    // Log the request, etc.
+});
+
+$events->listen('exception.thrown', function(array $data) {
+    $exception = $data['exception'];
+    // Send notification, etc.
+});
+
+// Dispatch a custom event
+$events->dispatch('user.created', ['user' => $user]);
+```
+
+#### Built-in Events
+
+- `request.started` : Dispatched at the start of request processing
+- `response.created` : Dispatched after response creation
+- `response.sent` : Dispatched after response is sent
+- `exception.thrown` : Dispatched when an exception is thrown
+
+### Centralized Configuration
+
+The framework allows loading configuration from PHP files in a `config/` directory.
+
+```php
+use JulienLinard\Core\Application;
+
+$app = Application::create(__DIR__);
+
+// Load configuration from config/
+$app->loadConfig('config');
+
+// Files config/app.php, config/database.php, etc. are automatically loaded
+// Accessible via $app->getConfig()->get('app.name')
+```
+
+**Recommended structure** :
+```
+config/
+  app.php      # Application configuration
+  database.php # Database configuration
+  cache.php    # Cache configuration
+```
+
+**Example config/app.php** :
+```php
+<?php
+return [
+    'name' => 'My Application',
+    'debug' => true,
+    'timezone' => 'Europe/Paris',
+];
+```
+
 ### CSRF Protection
 
 The framework includes a CSRF middleware to protect your forms.
@@ -763,6 +832,10 @@ echo ViewHelper::truncate($longText, 100);
 // CSRF token
 echo ViewHelper::csrfToken();
 echo ViewHelper::csrfField();
+
+// Generate URL from route name
+$url = ViewHelper::route('user.show', ['id' => 123]);
+$url = ViewHelper::route('users.index', [], ['page' => 2]); // With query params
 ```
 
 ## 📝 License

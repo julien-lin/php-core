@@ -23,7 +23,7 @@ class CsrfMiddleware implements Middleware
     /**
      * Gère la requête et vérifie le token CSRF
      */
-    public function handle(Request $request): void
+    public function handle(Request $request): ?Response
     {
         // Démarrer la session si nécessaire
         if (session_status() === PHP_SESSION_NONE) {
@@ -36,7 +36,7 @@ class CsrfMiddleware implements Middleware
         if (!in_array(strtoupper($request->getMethod()), $methodsToCheck)) {
             // Pour les autres méthodes, générer un nouveau token
             $this->generateToken();
-            return;
+            return null; // Continuer l'exécution
         }
 
         // Vérifier le token CSRF
@@ -44,18 +44,16 @@ class CsrfMiddleware implements Middleware
         $sessionToken = $_SESSION[$this->sessionKey] ?? null;
 
         if ($token === null || $sessionToken === null || !hash_equals($sessionToken, $token)) {
-            // Token invalide ou manquant
-            http_response_code(403);
-            header('Content-Type: application/json');
-            echo json_encode([
+            // Token invalide ou manquant - retourner une réponse d'erreur
+            return Response::json([
                 'error' => 'CSRF token mismatch',
                 'message' => 'Le token CSRF est invalide ou manquant.'
-            ]);
-            exit();
+            ], 403);
         }
 
         // Token valide, générer un nouveau token pour la prochaine requête
         $this->generateToken();
+        return null; // Continuer l'exécution
     }
 
     /**
