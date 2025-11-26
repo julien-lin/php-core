@@ -84,6 +84,18 @@ class Session
     }
 
     /**
+     * Vérifie si un message flash existe
+     *
+     * @param string $key Clé du message flash
+     * @return bool True si le message flash existe
+     */
+    public static function hasFlash(string $key): bool
+    {
+        self::start();
+        return isset($_SESSION['_flash.' . $key]);
+    }
+
+    /**
      * Récupère un message flash et le supprime
      *
      * @param string $key Clé du message flash
