@@ -25,6 +25,12 @@ class SimpleLogger implements LoggerInterface
     {
         $this->logPath = $logPath ?? sys_get_temp_dir() . '/app.log';
         $this->minLevel = self::LEVELS[$minLevel] ?? 0;
+        
+        // Créer le répertoire parent si nécessaire
+        $logDir = dirname($this->logPath);
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
     }
 
     public function emergency(string $message, array $context = []): void
@@ -77,7 +83,14 @@ class SimpleLogger implements LoggerInterface
         $contextStr = !empty($context) ? ' ' . json_encode($context) : '';
         $logMessage = "[{$timestamp}] [{$level}] {$message}{$contextStr}" . PHP_EOL;
 
-        error_log($logMessage, 3, $this->logPath);
+        // S'assurer que le répertoire existe avant d'écrire
+        $logDir = dirname($this->logPath);
+        if (!is_dir($logDir)) {
+            @mkdir($logDir, 0755, true);
+        }
+        
+        // Écrire dans le fichier de log
+        @error_log($logMessage, 3, $this->logPath);
     }
 }
 
