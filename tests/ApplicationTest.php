@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace JulienLinard\Core\Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -20,11 +22,26 @@ class ApplicationTest extends TestCase
     protected function tearDown(): void
     {
         // Nettoyer après les tests
-        Application::getInstance()?->getContainer()->flush();
+        $app = Application::getInstance();
+        if ($app !== null) {
+            $app->getContainer()->flush();
+        }
+        
+        // Réinitialiser l'instance singleton pour les tests
+        $reflection = new \ReflectionClass(Application::class);
+        $property = $reflection->getProperty('instance');
+        $property->setAccessible(true);
+        $property->setValue(null);
     }
 
     public function testCreateApplication(): void
     {
+        // Réinitialiser l'instance pour ce test
+        $reflection = new \ReflectionClass(Application::class);
+        $property = $reflection->getProperty('instance');
+        $property->setAccessible(true);
+        $property->setValue(null);
+        
         $app = Application::create($this->testPath);
         
         $this->assertInstanceOf(Application::class, $app);
@@ -33,6 +50,12 @@ class ApplicationTest extends TestCase
 
     public function testApplicationSingleton(): void
     {
+        // Réinitialiser l'instance pour ce test
+        $reflection = new \ReflectionClass(Application::class);
+        $property = $reflection->getProperty('instance');
+        $property->setAccessible(true);
+        $property->setValue(null);
+        
         $app1 = Application::create($this->testPath);
         $app2 = Application::getInstance();
         
@@ -41,6 +64,12 @@ class ApplicationTest extends TestCase
 
     public function testGetRouter(): void
     {
+        // Réinitialiser l'instance pour ce test
+        $reflection = new \ReflectionClass(Application::class);
+        $property = $reflection->getProperty('instance');
+        $property->setAccessible(true);
+        $property->setValue(null);
+        
         $app = Application::create($this->testPath);
         $router = $app->getRouter();
         
@@ -49,6 +78,12 @@ class ApplicationTest extends TestCase
 
     public function testGetContainer(): void
     {
+        // Réinitialiser l'instance pour ce test
+        $reflection = new \ReflectionClass(Application::class);
+        $property = $reflection->getProperty('instance');
+        $property->setAccessible(true);
+        $property->setValue(null);
+        
         $app = Application::create($this->testPath);
         $container = $app->getContainer();
         
@@ -57,6 +92,12 @@ class ApplicationTest extends TestCase
 
     public function testSetViewsPath(): void
     {
+        // Réinitialiser l'instance pour ce test
+        $reflection = new \ReflectionClass(Application::class);
+        $property = $reflection->getProperty('instance');
+        $property->setAccessible(true);
+        $property->setValue(null);
+        
         $app = Application::create($this->testPath);
         $customPath = $this->testPath . '/custom-views';
         

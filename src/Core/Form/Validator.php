@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace JulienLinard\Core\Form;
 
 use JulienLinard\Validator\Validator as PhpValidator;
