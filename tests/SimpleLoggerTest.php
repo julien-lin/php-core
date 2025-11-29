@@ -106,4 +106,34 @@ class SimpleLoggerTest extends TestCase
         $this->assertStringContainsString('user_id', $content);
         $this->assertStringContainsString('123', $content);
     }
+
+    public function testAlert()
+    {
+        $logger = new SimpleLogger($this->logPath);
+        $logger->alert('Alert message');
+        
+        $content = file_get_contents($this->logPath);
+        $this->assertStringContainsString('alert', $content);
+        $this->assertStringContainsString('Alert message', $content);
+    }
+
+    public function testCritical()
+    {
+        $logger = new SimpleLogger($this->logPath);
+        $logger->critical('Critical message');
+        
+        $content = file_get_contents($this->logPath);
+        $this->assertStringContainsString('critical', $content);
+        $this->assertStringContainsString('Critical message', $content);
+    }
+
+    public function testNotice()
+    {
+        $logger = new SimpleLogger($this->logPath);
+        $logger->notice('Notice message');
+        
+        $content = file_get_contents($this->logPath);
+        $this->assertStringContainsString('notice', $content);
+        $this->assertStringContainsString('Notice message', $content);
+    }
 }

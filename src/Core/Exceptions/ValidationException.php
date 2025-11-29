@@ -21,5 +21,28 @@ class ValidationException extends FrameworkException
     {
         return $this->errors;
     }
+
+    /**
+     * Retourne les erreurs pour un champ spécifique
+     * 
+     * @param string $field Nom du champ
+     * @return array Erreurs pour le champ
+     */
+    public function getErrorsForField(string $field): array
+    {
+        if (!isset($this->errors[$field])) {
+            return [];
+        }
+
+        $errors = $this->errors[$field];
+        
+        // Si c'est déjà un tableau, le retourner
+        if (is_array($errors)) {
+            return $errors;
+        }
+        
+        // Sinon, retourner dans un tableau
+        return [$errors];
+    }
 }
 

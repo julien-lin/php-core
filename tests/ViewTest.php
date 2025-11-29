@@ -28,9 +28,15 @@ class ViewTest extends TestCase
             mkdir($homePath, 0777, true);
         }
         
-        // Créer un fichier de vue de test
+        // Créer un fichier de vue de test (vue complète)
         file_put_contents(
             $homePath . '/index.html.php',
+            '<?= htmlspecialchars($title ?? "Default Title") ?>'
+        );
+        
+        // Créer un fichier de vue partielle (pour les tests avec $complete = false)
+        file_put_contents(
+            $homePath . '/_index.html.php',
             '<?= htmlspecialchars($title ?? "Default Title") ?>'
         );
         
@@ -54,8 +60,7 @@ class ViewTest extends TestCase
         // Réinitialiser l'instance pour ce test
         $reflection = new \ReflectionClass(Application::class);
         $property = $reflection->getProperty('instance');
-        $property->setAccessible(true);
-        $property->setValue(null);
+        $property->setValue(null, null);
         
         $app = Application::create($this->testPath);
         $app->setViewsPath($this->viewsPath);
@@ -73,8 +78,7 @@ class ViewTest extends TestCase
         // Réinitialiser l'instance singleton
         $reflection = new \ReflectionClass(Application::class);
         $property = $reflection->getProperty('instance');
-        $property->setAccessible(true);
-        $property->setValue(null);
+        $property->setValue(null, null);
         
         // Supprimer les fichiers de test
         if (is_dir($this->testPath)) {

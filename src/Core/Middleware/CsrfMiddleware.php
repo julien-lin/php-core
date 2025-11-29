@@ -67,9 +67,8 @@ class CsrfMiddleware implements Middleware
             session_start();
         }
 
-        if (!isset($_SESSION[$this->sessionKey])) {
-            $_SESSION[$this->sessionKey] = bin2hex(random_bytes(32));
-        }
+        // Toujours générer un nouveau token (régénération)
+        $_SESSION[$this->sessionKey] = bin2hex(random_bytes(32));
     }
 
     /**

@@ -103,4 +103,42 @@ class EventDispatcherTest extends TestCase
         $this->assertContains('event1', $events);
         $this->assertContains('event2', $events);
     }
+
+    public function testListenerExecutionOrder()
+    {
+        $order = [];
+        
+        $this->dispatcher->listen('test', function() use (&$order) {
+            $order[] = 'first';
+        });
+        
+        $this->dispatcher->listen('test', function() use (&$order) {
+            $order[] = 'second';
+        });
+        
+        $this->dispatcher->listen('test', function() use (&$order) {
+            $order[] = 'third';
+        });
+        
+        $this->dispatcher->dispatch('test');
+        
+        $this->assertEquals(['first', 'second', 'third'], $order);
+    }
+
+    public function testEventDataModification()
+    {
+        $finalData = null;
+        
+        $this->dispatcher->listen('test', function($data) use (&$finalData) {
+            $data['modified'] = true;
+            $data['count'] = ($data['count'] ?? 0) + 1;
+            $finalData = $data;
+        });
+        
+        $this->dispatcher->dispatch('test', ['initial' => 'value', 'count' => 0]);
+        
+        $this->assertTrue($finalData['modified']);
+        $this->assertEquals(1, $finalData['count']);
+        $this->assertEquals('value', $finalData['initial']);
+    }
 }

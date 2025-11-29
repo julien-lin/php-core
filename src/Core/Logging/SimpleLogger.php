@@ -11,6 +11,7 @@ class SimpleLogger implements LoggerInterface
 {
     private string $logPath;
     private int $minLevel;
+    private ?array $rotationConfig;
 
     private const LEVELS = [
         'debug' => 0,
@@ -23,10 +24,31 @@ class SimpleLogger implements LoggerInterface
         'emergency' => 7,
     ];
 
-    public function __construct(?string $logPath = null, string $minLevel = 'debug')
+    /**
+     * @param string|null $logPath Chemin du fichier de log
+     * @param string|int $minLevel Niveau minimum de log (string: 'debug', 'info', etc. ou int: 0-7)
+     * @param array|null $rotationConfig Configuration de rotation
+     *   - maxSize: Taille maximum en bytes (défaut: 10MB)
+     *   - maxFiles: Nombre maximum de fichiers archivés (défaut: 5)
+     *   - compress: Compresser les fichiers archivés (défaut: true)
+     */
+    public function __construct(?string $logPath = null, string|int $minLevel = 'debug', ?array $rotationConfig = null)
     {
         $this->logPath = $logPath ?? sys_get_temp_dir() . '/app.log';
-        $this->minLevel = self::LEVELS[$minLevel] ?? 0;
+        
+        // Gérer le niveau minimum (string ou int)
+        if (is_string($minLevel)) {
+            $this->minLevel = self::LEVELS[$minLevel] ?? 0;
+        } else {
+            $this->minLevel = max(0, min(7, $minLevel));
+        }
+        
+        // Configuration de rotation
+        $this->rotationConfig = $rotationConfig ?? [
+            'maxSize' => 10 * 1024 * 1024, // 10MB
+            'maxFiles' => 5,
+            'compress' => true,
+        ];
         
         // Créer le répertoire parent si nécessaire
         $logDir = dirname($this->logPath);
@@ -81,6 +103,9 @@ class SimpleLogger implements LoggerInterface
             return;
         }
 
+        // Vérifier et effectuer la rotation si nécessaire
+        $this->rotateIfNeeded();
+
         $timestamp = date('Y-m-d H:i:s');
         $contextStr = !empty($context) ? ' ' . json_encode($context) : '';
         $logMessage = "[{$timestamp}] [{$level}] {$message}{$contextStr}" . PHP_EOL;
@@ -93,6 +118,107 @@ class SimpleLogger implements LoggerInterface
         
         // Écrire dans le fichier de log
         @error_log($logMessage, 3, $this->logPath);
+    }
+
+    /**
+     * Effectue la rotation du fichier de log si nécessaire
+     */
+    private function rotateIfNeeded(): void
+    {
+        if (!file_exists($this->logPath)) {
+            return;
+        }
+
+        $fileSize = filesize($this->logPath);
+        if ($fileSize < $this->rotationConfig['maxSize']) {
+            return;
+        }
+
+        $this->rotate();
+    }
+
+    /**
+     * Effectue la rotation du fichier de log
+     */
+    private function rotate(): void
+    {
+        $logDir = dirname($this->logPath);
+        $logBaseName = basename($this->logPath, '.log');
+        $extension = $this->rotationConfig['compress'] ? '.log.gz' : '.log';
+
+        // Déplacer les fichiers existants
+        for ($i = $this->rotationConfig['maxFiles'] - 1; $i >= 1; $i--) {
+            $oldFile = $logDir . '/' . $logBaseName . '.' . $i . $extension;
+            $newFile = $logDir . '/' . $logBaseName . '.' . ($i + 1) . $extension;
+
+            if (file_exists($oldFile)) {
+                @rename($oldFile, $newFile);
+            }
+        }
+
+        // Archiver le fichier actuel
+        $archiveFile = $logDir . '/' . $logBaseName . '.1' . $extension;
+        
+        if ($this->rotationConfig['compress']) {
+            // Compresser le fichier actuel
+            $content = file_get_contents($this->logPath);
+            if ($content !== false) {
+                $compressed = gzencode($content, 6);
+                if ($compressed !== false) {
+                    @file_put_contents($archiveFile, $compressed);
+                }
+            }
+        } else {
+            // Déplacer simplement
+            @rename($this->logPath, $archiveFile);
+        }
+
+        // Vider le fichier de log actuel
+        @file_put_contents($this->logPath, '');
+
+        // Supprimer les fichiers au-delà de maxFiles
+        $this->cleanupOldFiles($logDir, $logBaseName, $extension);
+    }
+
+    /**
+     * Supprime les fichiers de log plus anciens que maxFiles
+     */
+    private function cleanupOldFiles(string $logDir, string $logBaseName, string $extension): void
+    {
+        for ($i = $this->rotationConfig['maxFiles'] + 1; $i <= 100; $i++) {
+            $file = $logDir . '/' . $logBaseName . '.' . $i . $extension;
+            if (file_exists($file)) {
+                @unlink($file);
+            } else {
+                break; // Pas besoin de continuer si le fichier n'existe pas
+            }
+        }
+    }
+
+    /**
+     * Force la rotation manuelle du fichier de log
+     */
+    public function rotateNow(): void
+    {
+        if (file_exists($this->logPath)) {
+            $this->rotate();
+        }
+    }
+
+    /**
+     * Retourne la configuration de rotation
+     */
+    public function getRotationConfig(): array
+    {
+        return $this->rotationConfig;
+    }
+
+    /**
+     * Définit la configuration de rotation
+     */
+    public function setRotationConfig(array $config): void
+    {
+        $this->rotationConfig = array_merge($this->rotationConfig ?? [], $config);
     }
 }
 

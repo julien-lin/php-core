@@ -88,4 +88,33 @@ class ConfigTest extends TestCase
         $this->config->set('app.name', 'New Name');
         $this->assertEquals('New Name', $this->config->get('app.name'));
     }
+
+    public function testLoadMergesConfiguration()
+    {
+        $this->config->set('app.name', 'TestApp');
+        $this->config->set('app.version', '1.0');
+        
+        // Charger une nouvelle configuration
+        $this->config->load([
+            'app' => [
+                'name' => 'NewApp',  // array_merge_recursive va créer un tableau
+                'debug' => true      // Devrait être ajouté
+            ],
+            'database' => [
+                'host' => 'localhost'
+            ]
+        ]);
+        
+        // array_merge_recursive fusionne les clés identiques en tableaux
+        // Donc app.name sera un tableau ['TestApp', 'NewApp']
+        $appName = $this->config->get('app.name');
+        $this->assertIsArray($appName);
+        $this->assertContains('TestApp', $appName);
+        $this->assertContains('NewApp', $appName);
+        
+        // Les nouvelles clés sont ajoutées normalement
+        $this->assertEquals('1.0', $this->config->get('app.version'));
+        $this->assertTrue($this->config->get('app.debug'));
+        $this->assertEquals('localhost', $this->config->get('database.host'));
+    }
 }

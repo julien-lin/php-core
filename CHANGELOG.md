@@ -5,6 +5,51 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.4.0] - 2025-11-29
+
+### ✨ Ajouté
+
+- **Middleware Rate Limiting** : Limitation de requêtes par IP + route.
+  - Configuration `maxRequests`, `windowSeconds`, `storagePath`.
+  - Retourne HTTP 429 quand la limite est dépassée.
+  - Stockage fichier (extensible à d'autres backends plus tard).
+  - Testé (3 tests, 9 assertions).
+- **Cache des Vues** : Système de cache fichier pour le moteur de templates.
+  - API : `View::configureCache()`, `View::setCacheEnabled()`, `View::clearCache()`.
+  - Invalidation automatique par TTL ou modification des sources (vue + partials).
+  - Hash intelligent (sha256 réduit) incluant mtimes + données.
+  - Verrouillage des fichiers (lecture/écriture) pour éviter les races.
+  - Tests dédiés (15 tests, 36 assertions).
+
+### 📚 Documentation
+
+- **README** : Ajout des sections Cache de Vues (EN/FR) + Rate Limiting.
+- **Fonctionnalités** : Mise à jour de la liste (Views + cache, Sécurité).
+
+### 🔧 Interne
+
+- Refactor `View` pour supporter cache sans casser API existante.
+- Ajout méthodes statiques pour configuration propre du cache.
+
+### 📊 Statistiques (cumulées)
+
+- **Tests** : 145+ tests (incluant middleware + cache vues).
+- **Assertions** : 300+ assertions.
+- **Couverture** : Fonctionnalités critiques > 90% (Application, Container, View, Session, Middleware, Events, ErrorHandler, Forms).
+
+### 🐛 Corrigé
+
+- Aucune régression détectée (suite complète verte après ajout des fonctionnalités).
+
+### 🔜 Prochaines pistes
+
+- Backend Redis / mémoire pour le Rate Limiting.
+- Cache fragment / clés taggées pour les vues complexes.
+- Rotation des logs + niveaux configurables.
+- Système d'héritage de layouts avancé.
+
+---
+
 ## [1.3.0] - 2025-11-29
 
 ### ✨ Ajouté

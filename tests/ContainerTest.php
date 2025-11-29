@@ -200,3 +200,13 @@ class UnresolvableService
     ) {
     }
 }
+
+class ClassA
+{
+    public function __construct(public ClassB $b) {}
+}
+
+class ClassB
+{
+    public function __construct() {}
+}

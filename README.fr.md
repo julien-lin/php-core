@@ -39,12 +39,15 @@ $app->start();
 - ✅ **Application** - Classe principale du framework
 - ✅ **Container DI** - Injection de dépendances avec auto-wiring
 - ✅ **Controllers** - Classe de base avec méthodes utilitaires
-- ✅ **Views** - Moteur de templates avec layouts
+- ✅ **Views** - Moteur de templates avec layouts + cache fichier des vues
 - ✅ **Models** - Classe Model de base avec hydratation
 - ✅ **Forms** - Validation de formulaires et gestion d'erreurs (alimenté par php-validator)
 - ✅ **Session** - Gestion des sessions avec flash messages
 - ✅ **Cache** - Système de cache intégré (php-cache)
 - ✅ **Middleware** - Système de middlewares intégré
+- ✅ **Sécurité** - Middleware CSRF + limitation de débit (Rate Limiting) + headers de sécurité
+- ✅ **Performance** - Middleware de compression de réponses (gzip)
+- ✅ **Logging** - Rotation automatique des logs avec compression
 - ✅ **Config** - Gestion de la configuration
 - ✅ **Exceptions** - Gestion centralisée des erreurs
 
@@ -114,6 +117,22 @@ $view->render(['title' => 'Accueil']);
 // Vue partielle (sans layout)
 $view = new View('partials/header', false);
 $view->render();
+
+// Activer le cache des vues (création du dossier automatique)
+View::configureCache(__DIR__.'/storage/cache-vues', 300); // TTL 5 min
+View::setCacheEnabled(true);
+
+// Plus tard : nettoyer les entrées expirées (fichiers > 1h)
+$supprimes = View::clearCache(3600);
+```
+
+#### Cache des vues - Explications
+
+- La clé inclut : nom vue, type (complet/partiel), hash des données, mtimes fichier + partials.
+- Invalidation automatique si : TTL dépassé OU fichiers modifiés.
+- Désactivation : `View::setCacheEnabled(false)` ou `View::configureCache(null)`.
+- Écritures sûres (verrouillage) pour éviter les conditions de course.
+- Utile pour des templates coûteux (boucles lourdes, gros fragments).
 ```
 
 ### Models
@@ -455,6 +474,166 @@ class ProductController extends \JulienLinard\Core\Controller\Controller
     }
 }
 ```
+
+### Cache au niveau des vues (intégré)
+
+Le moteur de vue possède son propre cache léger basé sur fichiers pour le HTML rendu. À utiliser pour des pages ou fragments HTML, même si vous utilisez déjà `php-cache` pour des données.
+
+```php
+use JulienLinard\Core\View\View;
+
+View::configureCache(__DIR__.'/storage/cache-vues', 600); // 10 min
+View::setCacheEnabled(true);
+
+echo (new View('home/index'))->render(['title' => 'Bonjour']);
+
+// Nettoyer tout le cache
+View::clearCache(0);
+```
+
+Quand utiliser quoi :
+- `php-cache` : données (résultats DB, appels API, tableaux).
+- Cache vues : HTML final des pages/parties.
+
+### Middlewares de Sécurité
+
+#### Middleware Rate Limiting
+
+Protège vos endpoints contre la force brute ou l'abus.
+
+```php
+use JulienLinard\Core\Middleware\RateLimitMiddleware;
+use JulienLinard\Core\Application;
+
+$app = Application::create(__DIR__);
+$router = $app->getRouter();
+
+// 100 requêtes / 60s par IP (stockage fichier)
+$router->addMiddleware(new RateLimitMiddleware(100, 60, __DIR__.'/storage/ratelimit'));
+```
+
+Comportement :
+- Compte par IP + chemin route.
+- Retourne HTTP 429 quand limite dépassée.
+- Fenêtre temporelle se réinitialise automatiquement.
+- Stockage : fichier plat (extensible à mémoire/Redis ultérieurement).
+
+Valeurs recommandées :
+- Login : 10 / 60s
+- API générique : 100 / 60s
+- Endpoints coûteux : 20 / 300s
+
+#### Middleware Headers de Sécurité
+
+Ajoute des headers HTTP de sécurité pour protéger contre les attaques courantes (XSS, clickjacking, MIME sniffing, etc.).
+
+```php
+use JulienLinard\Core\Middleware\SecurityHeadersMiddleware;
+use JulienLinard\Core\Application;
+
+$app = Application::create(__DIR__);
+$router = $app->getRouter();
+
+// Configuration par défaut (bonnes pratiques de sécurité)
+$router->addMiddleware(new SecurityHeadersMiddleware());
+
+// Configuration personnalisée
+$router->addMiddleware(new SecurityHeadersMiddleware([
+    'csp' => "default-src 'self'; script-src 'self' 'unsafe-inline'",
+    'hsts' => 'max-age=31536000; includeSubDomains',
+    'xFrameOptions' => 'DENY',
+    'referrerPolicy' => 'strict-origin-when-cross-origin',
+]));
+```
+
+Headers inclus :
+- **Content-Security-Policy (CSP)** - Prévention des attaques XSS
+- **Strict-Transport-Security (HSTS)** - Force HTTPS (uniquement en mode HTTPS)
+- **X-Frame-Options** - Prévention du clickjacking (DENY, SAMEORIGIN)
+- **X-Content-Type-Options** - Prévention du MIME sniffing (nosniff)
+- **Referrer-Policy** - Contrôle des informations de référent
+- **Permissions-Policy** - Contrôle des fonctionnalités du navigateur
+- **X-XSS-Protection** - Protection XSS legacy pour anciens navigateurs
+
+Le middleware détecte automatiquement HTTPS via `HTTPS`, `X-Forwarded-Proto`, ou le port 443.
+
+### Middlewares de Performance
+
+#### Middleware Compression
+
+Compresse automatiquement les réponses HTTP avec gzip pour réduire l'utilisation de la bande passante.
+
+```php
+use JulienLinard\Core\Middleware\CompressionMiddleware;
+use JulienLinard\Core\Application;
+
+$app = Application::create(__DIR__);
+$router = $app->getRouter();
+
+// Configuration par défaut (compresse les réponses > 1KB)
+$router->addMiddleware(new CompressionMiddleware());
+
+// Configuration personnalisée
+$router->addMiddleware(new CompressionMiddleware([
+    'level' => 6,        // Niveau de compression (1-9, défaut: 6)
+    'minSize' => 1024,   // Taille minimum à compresser en bytes (défaut: 1024)
+    'contentTypes' => [  // Types MIME à compresser
+        'text/html',
+        'application/json',
+        'text/css',
+    ],
+]));
+```
+
+Fonctionnalités :
+- Compression gzip automatique basée sur le header `Accept-Encoding`
+- Niveau de compression configurable (1-9)
+- Seuil de taille minimum pour éviter de compresser les petites réponses
+- Filtrage par Content-Type (compresse uniquement les types MIME spécifiés)
+- Ajoute automatiquement les headers `Content-Encoding: gzip` et `Vary: Accept-Encoding`
+
+### Logging avec Rotation
+
+Le `SimpleLogger` supporte maintenant la rotation automatique des logs pour éviter les problèmes d'espace disque.
+
+```php
+use JulienLinard\Core\Logging\SimpleLogger;
+
+// Configuration par défaut (10MB max, 5 fichiers, compressés)
+$logger = new SimpleLogger('/var/log/app.log', 'info');
+
+// Configuration de rotation personnalisée
+$logger = new SimpleLogger('/var/log/app.log', 'info', [
+    'maxSize' => 10 * 1024 * 1024,  // 10MB (défaut)
+    'maxFiles' => 5,                 // Conserver 5 fichiers archivés (défaut)
+    'compress' => true,              // Compresser les archives (défaut: true)
+]);
+
+// Logger des messages (la rotation se fait automatiquement quand maxSize est atteint)
+$logger->info('Application démarrée');
+$logger->error('Une erreur est survenue', ['context' => 'valeur']);
+
+// Forcer la rotation manuellement
+$logger->rotateNow();
+
+// Obtenir/mettre à jour la configuration de rotation
+$config = $logger->getRotationConfig();
+$logger->setRotationConfig(['maxFiles' => 10]);
+```
+
+Fonctionnalités :
+- **Rotation automatique** quand la taille du fichier dépasse `maxSize`
+- **Archivage des fichiers** avec numérotation (`app.1.log.gz`, `app.2.log.gz`, etc.)
+- **Compression** des fichiers archivés (optionnelle, économise l'espace disque)
+- **Nettoyage automatique** des anciens fichiers au-delà de `maxFiles`
+- **Niveaux de log configurables** (string: 'debug', 'info', etc. ou int: 0-7)
+- **Rotation manuelle** via la méthode `rotateNow()`
+
+Comportement de la rotation :
+- Quand `app.log` dépasse `maxSize`, il est archivé comme `app.1.log.gz`
+- Les archives existantes sont décalées (`app.1.log.gz` → `app.2.log.gz`)
+- Les anciens fichiers au-delà de `maxFiles` sont automatiquement supprimés
+- Le fichier de log actuel est vidé et le logging continue
 
 ### Intégration avec doctrine-php
 
