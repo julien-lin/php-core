@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace JulienLinard\Core\Controller;
 
 use JulienLinard\Router\Response;
