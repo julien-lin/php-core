@@ -121,6 +121,15 @@ class ControllerTest extends TestCase
         $this->assertStringNotContainsString("\r", $headers['location']);
         $this->assertStringNotContainsString("\n", $headers['location']);
     }
+
+    public function testApp()
+    {
+        $controller = new TestController();
+        $response = $controller->testApp();
+        
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertStringContainsString('Application', $response->getContent());
+    }
 }
 
 // Classe de test pour Controller
@@ -155,5 +164,11 @@ class TestController extends Controller
     {
         // Tester avec des caractères potentiellement dangereux
         return $this->redirect('/safe/path');
+    }
+
+    public function testApp(): Response
+    {
+        $app = $this->app();
+        return new Response(200, get_class($app));
     }
 }

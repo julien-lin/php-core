@@ -26,8 +26,7 @@ class ErrorHandlerTest extends TestCase
         // Réinitialiser l'instance pour ce test
         $reflection = new \ReflectionClass(Application::class);
         $property = $reflection->getProperty('instance');
-        $property->setAccessible(true);
-        $property->setValue(null);
+        $property->setValue(null, null);
         
         $this->app = Application::create($this->testPath);
         $this->app->setViewsPath($this->testPath . '/views');
@@ -43,11 +42,21 @@ class ErrorHandlerTest extends TestCase
     {
         $this->app->getContainer()->flush();
         
+        // Nettoyer les fichiers de vue d'erreur créés pendant les tests
+        $errorsPath = $this->testPath . '/views/errors';
+        if (is_dir($errorsPath)) {
+            $files = glob($errorsPath . '/*.php');
+            foreach ($files as $file) {
+                if (is_file($file)) {
+                    unlink($file);
+                }
+            }
+        }
+        
         // Réinitialiser l'instance singleton
         $reflection = new \ReflectionClass(Application::class);
         $property = $reflection->getProperty('instance');
-        $property->setAccessible(true);
-        $property->setValue(null);
+        $property->setValue(null, null);
     }
 
     public function testHandleNotFoundException()

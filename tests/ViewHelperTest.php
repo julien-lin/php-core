@@ -54,14 +54,16 @@ class ViewHelperTest extends TestCase
     {
         $formatted = ViewHelper::number(1234.56, 2);
         
-        $this->assertEquals('1,234.56', $formatted);
+        // Format français : virgule pour décimales, espace pour milliers
+        $this->assertEquals('1 234,56', $formatted);
     }
 
     public function testPrice()
     {
         $formatted = ViewHelper::price(99.99);
         
-        $this->assertStringContainsString('99.99', $formatted);
+        // Format français : virgule pour décimales
+        $this->assertStringContainsString('99,99', $formatted);
         $this->assertStringContainsString('€', $formatted);
     }
 
@@ -69,7 +71,8 @@ class ViewHelperTest extends TestCase
     {
         $formatted = ViewHelper::price(99.99, '$');
         
-        $this->assertStringContainsString('99.99', $formatted);
+        // Format français : virgule pour décimales
+        $this->assertStringContainsString('99,99', $formatted);
         $this->assertStringContainsString('$', $formatted);
     }
 
@@ -100,7 +103,7 @@ class ViewHelperTest extends TestCase
 
     public function testCsrfField()
     {
-        $field = ViewHelper::csrfField('_token');
+        $field = ViewHelper::csrfField();
         
         $this->assertStringContainsString('<input', $field);
         $this->assertStringContainsString('type="hidden"', $field);

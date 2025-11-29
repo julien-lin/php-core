@@ -38,7 +38,8 @@ class ErrorHandler
 
         // Gérer selon le type d'exception
         if ($e instanceof NotFoundException) {
-            return $this->renderErrorPage(404, 'Page non trouvée', 'La ressource demandée n\'existe pas.');
+            $message = $e->getMessage() ?: 'La ressource demandée n\'existe pas.';
+            return $this->renderErrorPage(404, 'Page non trouvée', $message);
         }
 
         if ($e instanceof ValidationException) {

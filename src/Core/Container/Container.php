@@ -56,9 +56,9 @@ class Container
      *
      * @param string $abstract Nom abstrait ou classe
      * @param array $parameters Paramètres additionnels pour le constructeur
-     * @return object Instance résolue
+     * @return mixed Instance résolue ou valeur primitive
      */
-    public function make(string $abstract, array $parameters = []): object
+    public function make(string $abstract, array $parameters = []): mixed
     {
         // Si c'est un singleton et qu'on a déjà une instance, la retourner
         if (isset($this->instances[$abstract])) {
@@ -102,7 +102,9 @@ class Container
         $reflection = $this->getReflection($class);
 
         if (!$reflection->isInstantiable()) {
-            throw new \RuntimeException("La classe {$class} n'est pas instanciable.");
+            // Extraire le nom simple de la classe (sans namespace)
+            $className = basename(str_replace('\\', '/', $class));
+            throw new \RuntimeException("La classe {$className} n'est pas instanciable.");
         }
 
         $constructor = $reflection->getConstructor();

@@ -53,7 +53,6 @@ abstract class Model
         $reflection = new \ReflectionClass($this);
         
         foreach ($reflection->getProperties() as $property) {
-            $property->setAccessible(true);
             $array[$property->getName()] = $property->getValue($this);
         }
         
