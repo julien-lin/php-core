@@ -36,18 +36,137 @@ class ErrorHandler
         // Logger l'erreur
         $this->logException($e);
 
+        // PRIORITÉ 1: Si c'est une exception API, toujours retourner du JSON
+        // Vérifier d'abord par le nom de classe (plus fiable si la classe n'est pas encore chargée)
+        $exceptionClass = get_class($e);
+        $isApiException = str_contains($exceptionClass, 'Api\\Exception\\ApiException') || 
+                         str_contains($exceptionClass, 'ApiException');
+        $isApiValidationException = (str_contains($exceptionClass, 'Api\\Exception\\ValidationException') || 
+                                   (str_contains($exceptionClass, 'ValidationException') && str_contains($exceptionClass, 'Api')));
+        
+        if ($isApiException || $isApiValidationException) {
+            return $this->renderApiError($e);
+        }
+        
+        // Vérifier aussi avec instanceof si la classe est chargée
+        if (class_exists('JulienLinard\Api\Exception\ApiException') && $e instanceof \JulienLinard\Api\Exception\ApiException) {
+            return $this->renderApiError($e);
+        }
+        
+        if (class_exists('JulienLinard\Api\Exception\ValidationException') && $e instanceof \JulienLinard\Api\Exception\ValidationException) {
+            return $this->renderApiError($e);
+        }
+
+        // PRIORITÉ 2: Vérifier si c'est une requête API (Content-Type: application/json ou route /api/*)
+        $isApiRequest = $this->isApiRequest();
+
         // Gérer selon le type d'exception
         if ($e instanceof NotFoundException) {
             $message = $e->getMessage() ?: 'La ressource demandée n\'existe pas.';
+            if ($isApiRequest) {
+                return $this->renderApiJsonError(404, 'Not Found', $message);
+            }
             return $this->renderErrorPage(404, 'Page non trouvée', $message);
         }
 
         if ($e instanceof ValidationException) {
+            if ($isApiRequest) {
+                return $this->renderApiJsonError(422, 'Validation Error', $e->getMessage(), $e->getErrors());
+            }
             return $this->renderErrorPage(422, 'Erreur de validation', $e->getMessage(), $e->getErrors());
         }
 
         // Erreur serveur générique
-        return $this->renderErrorPage(500, 'Erreur serveur', $this->debug ? $e->getMessage() : 'Une erreur est survenue.');
+        $message = $this->debug ? $e->getMessage() : 'Une erreur est survenue.';
+        if ($isApiRequest) {
+            return $this->renderApiJsonError(500, 'Internal Server Error', $message);
+        }
+        return $this->renderErrorPage(500, 'Erreur serveur', $message);
+    }
+    
+    /**
+     * Vérifie si la requête est une requête API
+     */
+    private function isApiRequest(): bool
+    {
+        // Vérifier le Content-Type ou Accept header
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+        if (str_contains($contentType, 'application/json') || str_contains($accept, 'application/json')) {
+            return true;
+        }
+        
+        // Vérifier si l'URI commence par /api (mais pas /api/docs qui est Swagger UI)
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+        $path = parse_url($requestUri, PHP_URL_PATH) ?? $requestUri;
+        
+        // Si c'est une route API (commence par /api) mais pas Swagger UI
+        if (str_starts_with($path, '/api')) {
+            // Exclure Swagger UI qui peut retourner du HTML
+            if (!str_starts_with($path, '/api/docs') && !str_starts_with($path, '/api/swagger')) {
+                return true;
+            }
+        }
+        
+        // Vérifier aussi via la variable d'environnement ou le contexte de l'application
+        // Si on a une exception ApiException, c'est forcément une requête API
+        return false;
+    }
+    
+    /**
+     * Rend une erreur API au format JSON
+     */
+    private function renderApiError(\Throwable $e): Response
+    {
+        if (class_exists('JulienLinard\Api\Exception\ProblemDetails')) {
+            $baseUrl = 'http://localhost'; // Par défaut
+            try {
+                $config = $this->app->getConfig();
+                if ($config && method_exists($config, 'get')) {
+                    $baseUrl = $config->get('app.url', $baseUrl);
+                }
+            } catch (\Throwable $ex) {
+                // Ignorer si getConfig() n'existe pas
+            }
+            
+            $problem = \JulienLinard\Api\Exception\ProblemDetails::fromException($e, $baseUrl);
+            $response = new Response($problem->status, json_encode($problem->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $response->setHeader('Content-Type', 'application/json');
+            return $response;
+        }
+        
+        // Fallback si ProblemDetails n'est pas disponible
+        return $this->renderApiJsonError(
+            $e instanceof \JulienLinard\Api\Exception\ApiException ? $e->getStatusCode() : 500,
+            'Error',
+            $e->getMessage()
+        );
+    }
+    
+    /**
+     * Rend une erreur API simple au format JSON
+     */
+    private function renderApiJsonError(int $code, string $title, string $message, array $errors = []): Response
+    {
+        $data = [
+            'error' => $title,
+            'message' => $message,
+            'status' => $code,
+        ];
+        
+        if (!empty($errors)) {
+            $data['errors'] = $errors;
+        }
+        
+        if ($this->debug) {
+            $data['debug'] = [
+                'file' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5),
+            ];
+        }
+        
+        $response = new Response($code, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+        $response->setHeader('Content-Type', 'application/json');
+        return $response;
     }
 
     /**
