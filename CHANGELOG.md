@@ -5,6 +5,24 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.4.2] - 2025-01-07
+
+### 🐛 Corrections
+
+- **ErrorHandler** : Amélioration de la gestion des erreurs API
+  - Détection automatique des requêtes API (routes `/api/*` ou Content-Type `application/json`)
+  - Les exceptions `ApiException` et `ValidationException` de `php-api` retournent maintenant du JSON au lieu de HTML
+  - Utilisation de `ProblemDetails` (RFC 7807) pour les erreurs API
+  - Détection par nom de classe pour plus de fiabilité
+  - Support des requêtes Swagger UI
+
+### 🔧 Améliorations
+
+- **ErrorHandler** : Meilleure détection des requêtes API
+  - Vérification du Content-Type et Accept headers
+  - Vérification de l'URI pour les routes `/api/*`
+  - Exclusion de Swagger UI (`/api/docs`, `/api/swagger`) pour éviter les conflits
+
 ## [1.4.1] - 2025-01-07
 
 ### ✨ Ajouté
