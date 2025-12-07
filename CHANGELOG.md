@@ -5,6 +5,21 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.4.1] - 2025-01-07
+
+### ✨ Ajouté
+
+- **CsrfMiddleware - Exclusion de chemins** : Possibilité d'exclure des chemins de la vérification CSRF
+  - Nouveau paramètre `excludedPaths` dans le constructeur
+  - Par défaut, les routes `/api` sont exclues (adapté pour les APIs REST)
+  - Permet de configurer des chemins personnalisés à exclure
+  - Utile pour les APIs qui utilisent l'authentification par token plutôt que CSRF
+
+### 🔧 Améliorations
+
+- **CsrfMiddleware** : Vérification du chemin avant d'appliquer la protection CSRF
+- Support des APIs REST sans token CSRF (recommandé pour les APIs)
+
 ## [1.4.0] - 2025-11-29
 
 ### ✨ Ajouté

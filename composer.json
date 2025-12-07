@@ -38,6 +38,9 @@
         "julienlinard/php-cache": "^1.0",
         "julienlinard/php-validator": "^1.0"
     },
+    "suggest": {
+        "julienlinard/php-vision": "^1.0 pour utiliser le moteur de template Vision avec syntaxe {{ variable }}"
+    },
     "autoload": {
         "psr-4": {
             "JulienLinard\\Core\\": "src/Core/"
@@ -57,6 +60,6 @@
     },
     "minimum-stability": "stable",
     "prefer-stable": true,
-    "version": "1.4.0"
+    "version": "1.4.1"
 }
 
