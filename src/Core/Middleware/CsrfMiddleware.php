@@ -15,11 +15,17 @@ class CsrfMiddleware implements Middleware
 {
     private string $tokenName;
     private string $sessionKey;
+    private array $excludedPaths;
 
-    public function __construct(string $tokenName = '_token', string $sessionKey = '_csrf_token')
-    {
+    public function __construct(
+        string $tokenName = '_token', 
+        string $sessionKey = '_csrf_token',
+        array $excludedPaths = []
+    ) {
         $this->tokenName = $tokenName;
         $this->sessionKey = $sessionKey;
+        // Par défaut, exclure les routes API
+        $this->excludedPaths = empty($excludedPaths) ? ['/api'] : $excludedPaths;
     }
 
     /**
@@ -27,6 +33,15 @@ class CsrfMiddleware implements Middleware
      */
     public function handle(Request $request): ?Response
     {
+        // Vérifier si le chemin est exclu de la protection CSRF
+        $path = $request->getPath();
+        foreach ($this->excludedPaths as $excludedPath) {
+            if (str_starts_with($path, $excludedPath)) {
+                // Route exclue, ne pas appliquer CSRF
+                return null;
+            }
+        }
+
         // Démarrer la session si nécessaire
         if (session_status() === PHP_SESSION_NONE) {
             session_start();

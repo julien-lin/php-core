@@ -132,6 +132,85 @@ class View
             }
         }
 
+        // Vérifier si Vision est disponible
+        $visionAvailable = class_exists(\JulienLinard\Vision\Vision::class);
+
+        if ($visionAvailable) {
+            return $this->renderWithVision($viewsPath, $partialsPath, $data ?? []);
+        } else {
+            return $this->renderWithPhp($viewsPath, $partialsPath, $data ?? []);
+        }
+    }
+
+    /**
+     * Rend la vue en utilisant Vision (si disponible)
+     *
+     * @param string $viewsPath
+     * @param string $partialsPath
+     * @param array $data
+     * @return string
+     */
+    private function renderWithVision(string $viewsPath, string $partialsPath, array $data): string
+    {
+        // Créer une instance de Vision pour parser les templates
+        $vision = new \JulienLinard\Vision\Vision('', true); // Auto-escape activé par défaut
+
+        // Construire le contenu final
+        $content = '';
+
+        // Inclure le header si vue complète
+        if ($this->complete) {
+            $headerPath = $partialsPath . DIRECTORY_SEPARATOR . '_header.html.php';
+            if (file_exists($headerPath)) {
+                $headerContent = file_get_contents($headerPath);
+                if ($headerContent !== false) {
+                    $content .= $vision->renderString($headerContent, $data);
+                }
+            }
+        }
+
+        // Inclure la vue principale
+        $viewPath = $this->getViewPath($viewsPath);
+        if (!file_exists($viewPath)) {
+            throw new \RuntimeException("La vue {$this->name} n'existe pas à l'emplacement: {$viewPath}");
+        }
+        
+        $viewContent = file_get_contents($viewPath);
+        if ($viewContent === false) {
+            throw new \RuntimeException("Impossible de lire le fichier de vue: {$viewPath}");
+        }
+        
+        $content .= $vision->renderString($viewContent, $data);
+
+        // Inclure le footer si vue complète
+        if ($this->complete) {
+            $footerPath = $partialsPath . DIRECTORY_SEPARATOR . '_footer.html.php';
+            if (file_exists($footerPath)) {
+                $footerContent = file_get_contents($footerPath);
+                if ($footerContent !== false) {
+                    $content .= $vision->renderString($footerContent, $data);
+                }
+            }
+        }
+
+        // Sauvegarder dans le cache si activé
+        if (self::$cacheEnabled && self::$cacheDir !== null) {
+            $this->saveCachedContent($viewsPath, $partialsPath, $data, $content);
+        }
+
+        return $content;
+    }
+
+    /**
+     * Rend la vue en utilisant la méthode PHP procédurale classique
+     *
+     * @param string $viewsPath
+     * @param string $partialsPath
+     * @param array $data
+     * @return string
+     */
+    private function renderWithPhp(string $viewsPath, string $partialsPath, array $data): string
+    {
         // Extraire les données pour qu'elles soient accessibles dans la vue
         if (!empty($data)) {
             extract($data);
