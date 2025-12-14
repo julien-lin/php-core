@@ -13,12 +13,13 @@ class ModelTest extends TestCase
     {
         $user = new TestUser();
         $user->fill([
-            'id' => 1,
+            'id' => 1, // id est protégé par défaut (guarded), donc ne sera pas rempli
             'name' => 'John Doe',
             'email' => 'john@example.com'
         ]);
         
-        $this->assertEquals(1, $user->id);
+        // id est protégé, donc reste null
+        $this->assertNull($user->id);
         $this->assertEquals('John Doe', $user->name);
         $this->assertEquals('john@example.com', $user->email);
     }
@@ -26,23 +27,23 @@ class ModelTest extends TestCase
     public function testConstructorWithData()
     {
         $user = new TestUser([
-            'id' => 1,
+            'id' => 1, // id est protégé par défaut (guarded), donc ne sera pas rempli
             'name' => 'John Doe',
             'email' => 'john@example.com'
         ]);
         
-        $this->assertEquals(1, $user->id);
+        // id est protégé, donc reste null
+        $this->assertNull($user->id);
         $this->assertEquals('John Doe', $user->name);
         $this->assertEquals('john@example.com', $user->email);
     }
 
     public function testToArray()
     {
-        $user = new TestUser([
-            'id' => 1,
-            'name' => 'John Doe',
-            'email' => 'john@example.com'
-        ]);
+        $user = new TestUser();
+        $user->name = 'John Doe';
+        $user->email = 'john@example.com';
+        $user->id = 1; // On peut assigner directement (pas via fill)
         
         $array = $user->toArray();
         
@@ -54,11 +55,10 @@ class ModelTest extends TestCase
 
     public function testToJson()
     {
-        $user = new TestUser([
-            'id' => 1,
-            'name' => 'John Doe',
-            'email' => 'john@example.com'
-        ]);
+        $user = new TestUser();
+        $user->name = 'John Doe';
+        $user->email = 'john@example.com';
+        $user->id = 1; // On peut assigner directement (pas via fill)
         
         $json = $user->toJson();
         
@@ -79,7 +79,8 @@ class ModelTest extends TestCase
 
     public function testToString()
     {
-        $user = new TestUser(['id' => 123]);
+        $user = new TestUser();
+        $user->id = 123; // On peut assigner directement (pas via fill)
         
         $this->assertStringContainsString('TestUser', (string)$user);
         $this->assertStringContainsString('123', (string)$user);

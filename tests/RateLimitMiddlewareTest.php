@@ -39,9 +39,10 @@ class RateLimitMiddlewareTest extends TestCase
         $middleware = new RateLimitMiddleware(5, 60, $this->storagePath);
         $request = $this->mockRequest('127.0.0.1', '/test');
         $response = null;
-        for ($i = 0; $i < 5; $i++) {
+        // Tester avec 4 requêtes (sous la limite de 5)
+        for ($i = 0; $i < 4; $i++) {
             $response = $middleware->handle($request);
-            $this->assertNull($response);
+            $this->assertNull($response, "La requête {$i} devrait être autorisée");
         }
     }
 

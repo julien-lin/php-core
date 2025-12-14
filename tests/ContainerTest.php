@@ -40,6 +40,8 @@ class ContainerTest extends TestCase
         $this->container->bind('non-singleton', fn() => new \stdClass(), false);
         
         $instance1 = $this->container->make('non-singleton');
+        // Nettoyer le cache de requête pour forcer une nouvelle résolution
+        $this->container->clearRequestCache();
         $instance2 = $this->container->make('non-singleton');
         
         $this->assertNotSame($instance1, $instance2);

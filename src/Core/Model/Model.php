@@ -15,6 +15,22 @@ abstract class Model
     public ?int $id = null;
 
     /**
+     * Propriétés qui peuvent être remplies via fill() (whitelist)
+     * Si vide, toutes les propriétés sont autorisées sauf celles dans $guarded
+     * 
+     * @var array<string>
+     */
+    protected array $fillable = [];
+
+    /**
+     * Propriétés qui ne peuvent PAS être remplies via fill() (blacklist)
+     * Par défaut, l'ID est protégé
+     * 
+     * @var array<string>
+     */
+    protected array $guarded = ['id'];
+
+    /**
      * Constructeur avec hydratation automatique
      *
      * @param array $data Données à injecter dans l'objet
@@ -26,6 +42,11 @@ abstract class Model
 
     /**
      * Remplit l'objet avec des données
+     * 
+     * Protection contre le mass assignment:
+     * - Si $fillable est défini, seules ces propriétés peuvent être remplies
+     * - Si $guarded est défini, ces propriétés ne peuvent pas être remplies
+     * - Par défaut, 'id' est protégé
      *
      * @param array $data Données à injecter
      * @return self Instance pour chaînage
@@ -34,9 +55,21 @@ abstract class Model
     {
         foreach ($data as $key => $value) {
             // Vérifier que la propriété existe
-            if (property_exists($this, $key)) {
-                $this->$key = $value;
+            if (!property_exists($this, $key)) {
+                continue;
             }
+            
+            // Si fillable est défini et non vide, vérifier que la clé est autorisée
+            if (!empty($this->fillable) && !in_array($key, $this->fillable, true)) {
+                continue;
+            }
+            
+            // Si guarded est défini et non vide, vérifier que la clé n'est pas protégée
+            if (!empty($this->guarded) && in_array($key, $this->guarded, true)) {
+                continue;
+            }
+            
+            $this->$key = $value;
         }
         
         return $this;

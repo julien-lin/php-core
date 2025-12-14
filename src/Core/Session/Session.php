@@ -18,8 +18,23 @@ class Session
 
     /**
      * Démarre la session si elle n'est pas déjà démarrée
+     * 
+     * Note: Pour une configuration sécurisée complète, utilisez Application::start()
+     * qui configure automatiquement les paramètres de sécurité de session.
      */
     public static function start(): void
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+    }
+
+    /**
+     * Assure que la session est démarrée (méthode utilitaire optimisée)
+     * 
+     * Cette méthode est utilisée en interne pour éviter la duplication de code
+     */
+    private static function ensureStarted(): void
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -34,7 +49,7 @@ class Session
      */
     public static function set(string $key, mixed $value): void
     {
-        self::start();
+        self::ensureStarted();
         $_SESSION[$key] = $value;
     }
 
@@ -47,7 +62,7 @@ class Session
      */
     public static function get(string $key, mixed $default = null): mixed
     {
-        self::start();
+        self::ensureStarted();
         return $_SESSION[$key] ?? $default;
     }
 
@@ -59,7 +74,7 @@ class Session
      */
     public static function has(string $key): bool
     {
-        self::start();
+        self::ensureStarted();
         return isset($_SESSION[$key]);
     }
 
@@ -70,7 +85,7 @@ class Session
      */
     public static function remove(string $key): void
     {
-        self::start();
+        self::ensureStarted();
         unset($_SESSION[$key]);
     }
 
@@ -93,7 +108,7 @@ class Session
      */
     public static function hasFlash(string $key): bool
     {
-        self::start();
+        self::ensureStarted();
         return isset($_SESSION['_flash.' . $key]);
     }
 
@@ -106,7 +121,7 @@ class Session
      */
     public static function getFlash(string $key, mixed $default = null): mixed
     {
-        self::start();
+        self::ensureStarted();
         $flashKey = '_flash.' . $key;
         $value = $_SESSION[$flashKey] ?? $default;
         unset($_SESSION[$flashKey]);
@@ -120,7 +135,7 @@ class Session
      */
     public static function regenerate(bool $deleteOldSession = false): void
     {
-        self::start();
+        self::ensureStarted();
         session_regenerate_id($deleteOldSession);
     }
 
@@ -129,7 +144,7 @@ class Session
      */
     public static function flush(): void
     {
-        self::start();
+        self::ensureStarted();
         $_SESSION = [];
     }
 
@@ -138,7 +153,7 @@ class Session
      */
     public static function destroy(): void
     {
-        self::start();
+        self::ensureStarted();
         session_destroy();
         $_SESSION = [];
     }
@@ -150,7 +165,7 @@ class Session
      */
     public static function all(): array
     {
-        self::start();
+        self::ensureStarted();
         return $_SESSION;
     }
 }

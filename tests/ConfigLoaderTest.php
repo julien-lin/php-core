@@ -22,7 +22,10 @@ class ConfigLoaderTest extends TestCase
 
     protected function tearDown(): void
     {
-        // Nettoyer
+        // Nettoyer le cache du ConfigLoader
+        ConfigLoader::clearCache();
+
+        // Nettoyer les fichiers
         if (is_dir($this->testConfigPath)) {
             $this->deleteDirectory($this->testConfigPath);
         }
@@ -33,7 +36,7 @@ class ConfigLoaderTest extends TestCase
         if (!is_dir($dir)) {
             return;
         }
-        
+
         $files = array_diff(scandir($dir), ['.', '..']);
         foreach ($files as $file) {
             $path = $dir . '/' . $file;
@@ -49,9 +52,9 @@ class ConfigLoaderTest extends TestCase
             $this->testConfigPath . '/app.php',
             '<?php return ["name" => "Test App", "debug" => true];'
         );
-        
+
         $config = ConfigLoader::load($this->testConfigPath);
-        
+
         $this->assertIsArray($config);
         $this->assertEquals('Test App', $config['app']['name']);
         $this->assertTrue($config['app']['debug']);
@@ -63,14 +66,14 @@ class ConfigLoaderTest extends TestCase
             $this->testConfigPath . '/app.php',
             '<?php return ["name" => "Test App"];'
         );
-        
+
         file_put_contents(
             $this->testConfigPath . '/database.php',
             '<?php return ["host" => "localhost", "port" => 3306];'
         );
-        
+
         $config = ConfigLoader::load($this->testConfigPath);
-        
+
         $this->assertIsArray($config);
         $this->assertEquals('Test App', $config['app']['name']);
         $this->assertEquals('localhost', $config['database']['host']);
@@ -83,10 +86,10 @@ class ConfigLoaderTest extends TestCase
             $this->testConfigPath . '/app.php',
             '<?php return ["name" => "Test App", "debug" => true];'
         );
-        
+
         $config = new Config();
         ConfigLoader::loadInto($config, $this->testConfigPath);
-        
+
         $this->assertEquals('Test App', $config->get('app.name'));
         $this->assertTrue($config->get('app.debug'));
     }
@@ -94,7 +97,7 @@ class ConfigLoaderTest extends TestCase
     public function testLoadNonExistentDirectory()
     {
         $config = ConfigLoader::load('/non/existent/path');
-        
+
         $this->assertIsArray($config);
         $this->assertEmpty($config);
     }
