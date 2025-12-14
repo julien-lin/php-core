@@ -19,6 +19,28 @@ class ErrorHandler
     private bool $debug;
     private ?string $viewsPath;
     private Application $app;
+    private static array $errorPageCache = [];
+
+    /**
+     * Clés sensibles à redacter du logging
+     */
+    private const SENSITIVE_KEYS = [
+        'password',
+        'passwd',
+        'pwd',
+        'token',
+        'access_token',
+        'refresh_token',
+        'api_key',
+        'api_secret',
+        'secret',
+        'private_key',
+        'credit_card',
+        'authorization',
+        'cookie',
+        'session_id',
+        'jwt',
+    ];
 
     public function __construct(Application $app, ?LoggerInterface $logger = null, bool $debug = false, ?string $viewsPath = null)
     {
@@ -39,20 +61,20 @@ class ErrorHandler
         // PRIORITÉ 1: Si c'est une exception API, toujours retourner du JSON
         // Vérifier d'abord par le nom de classe (plus fiable si la classe n'est pas encore chargée)
         $exceptionClass = get_class($e);
-        $isApiException = str_contains($exceptionClass, 'Api\\Exception\\ApiException') || 
-                         str_contains($exceptionClass, 'ApiException');
-        $isApiValidationException = (str_contains($exceptionClass, 'Api\\Exception\\ValidationException') || 
-                                   (str_contains($exceptionClass, 'ValidationException') && str_contains($exceptionClass, 'Api')));
-        
+        $isApiException = str_contains($exceptionClass, 'Api\\Exception\\ApiException') ||
+            str_contains($exceptionClass, 'ApiException');
+        $isApiValidationException = (str_contains($exceptionClass, 'Api\\Exception\\ValidationException') ||
+            (str_contains($exceptionClass, 'ValidationException') && str_contains($exceptionClass, 'Api')));
+
         if ($isApiException || $isApiValidationException) {
             return $this->renderApiError($e);
         }
-        
+
         // Vérifier aussi avec instanceof si la classe est chargée
         if (class_exists('JulienLinard\Api\Exception\ApiException') && $e instanceof \JulienLinard\Api\Exception\ApiException) {
             return $this->renderApiError($e);
         }
-        
+
         if (class_exists('JulienLinard\Api\Exception\ValidationException') && $e instanceof \JulienLinard\Api\Exception\ValidationException) {
             return $this->renderApiError($e);
         }
@@ -83,7 +105,7 @@ class ErrorHandler
         }
         return $this->renderErrorPage(500, 'Erreur serveur', $message);
     }
-    
+
     /**
      * Vérifie si la requête est une requête API
      */
@@ -95,11 +117,11 @@ class ErrorHandler
         if (str_contains($contentType, 'application/json') || str_contains($accept, 'application/json')) {
             return true;
         }
-        
+
         // Vérifier si l'URI commence par /api (mais pas /api/docs qui est Swagger UI)
         $requestUri = $_SERVER['REQUEST_URI'] ?? '';
         $path = parse_url($requestUri, PHP_URL_PATH) ?? $requestUri;
-        
+
         // Si c'est une route API (commence par /api) mais pas Swagger UI
         if (str_starts_with($path, '/api')) {
             // Exclure Swagger UI qui peut retourner du HTML
@@ -107,12 +129,12 @@ class ErrorHandler
                 return true;
             }
         }
-        
+
         // Vérifier aussi via la variable d'environnement ou le contexte de l'application
         // Si on a une exception ApiException, c'est forcément une requête API
         return false;
     }
-    
+
     /**
      * Rend une erreur API au format JSON
      */
@@ -128,13 +150,13 @@ class ErrorHandler
             } catch (\Throwable $ex) {
                 // Ignorer si getConfig() n'existe pas
             }
-            
+
             $problem = \JulienLinard\Api\Exception\ProblemDetails::fromException($e, $baseUrl);
             $response = new Response($problem->status, json_encode($problem->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
             $response->setHeader('Content-Type', 'application/json');
             return $response;
         }
-        
+
         // Fallback si ProblemDetails n'est pas disponible
         return $this->renderApiJsonError(
             $e instanceof \JulienLinard\Api\Exception\ApiException ? $e->getStatusCode() : 500,
@@ -142,7 +164,7 @@ class ErrorHandler
             $e->getMessage()
         );
     }
-    
+
     /**
      * Rend une erreur API simple au format JSON
      */
@@ -153,17 +175,17 @@ class ErrorHandler
             'message' => $message,
             'status' => $code,
         ];
-        
+
         if (!empty($errors)) {
             $data['errors'] = $errors;
         }
-        
+
         if ($this->debug) {
             $data['debug'] = [
                 'file' => debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 5),
             ];
         }
-        
+
         $response = new Response($code, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         $response->setHeader('Content-Type', 'application/json');
         return $response;
@@ -183,10 +205,14 @@ class ErrorHandler
 
         if ($e instanceof ValidationException) {
             $context['errors'] = $e->getErrors();
+            // ✅ Redacter les données sensibles avant de logger
+            $context = $this->redactSensitiveData($context);
             $this->logger->warning($e->getMessage(), $context);
         } elseif ($e instanceof NotFoundException) {
             $this->logger->notice($e->getMessage(), $context);
         } else {
+            // ✅ Redacter les données sensibles avant de logger
+            $context = $this->redactSensitiveData($context);
             $this->logger->error($e->getMessage(), $context);
         }
     }
@@ -198,7 +224,7 @@ class ErrorHandler
     {
         // Essayer de charger une vue d'erreur personnalisée
         $errorViewPath = $this->viewsPath . DIRECTORY_SEPARATOR . 'errors' . DIRECTORY_SEPARATOR . $code . '.html.php';
-        
+
         if (file_exists($errorViewPath)) {
             ob_start();
             extract([
@@ -219,9 +245,18 @@ class ErrorHandler
 
     /**
      * Génère le HTML d'une page d'erreur par défaut
+     * Utilise un cache pour éviter de régénérer le même HTML
      */
     private function generateErrorPageHtml(int $code, string $title, string $message, array $errors = []): string
     {
+        // Créer une clé de cache basée sur le code, titre, message et erreurs
+        $cacheKey = md5($code . '_' . $title . '_' . $message . '_' . serialize($errors));
+
+        // Vérifier le cache
+        if (isset(self::$errorPageCache[$cacheKey])) {
+            return self::$errorPageCache[$cacheKey];
+        }
+
         $html = '<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -309,7 +344,60 @@ class ErrorHandler
 </body>
 </html>';
 
+        // Mettre en cache (limiter la taille du cache pour éviter la surconsommation mémoire)
+        if (count(self::$errorPageCache) < 50) {
+            self::$errorPageCache[$cacheKey] = $html;
+        }
+
         return $html;
     }
-}
 
+    /**
+     * ✅ Vide le cache des pages d'erreur
+     */
+    public static function clearErrorCache(): void
+    {
+        self::$errorPageCache = [];
+    }
+
+    /**
+     * ✅ Redacte les données sensibles d'un tableau
+     * Remplace les valeurs des clés sensibles par '***REDACTED***'
+     *
+     * @param array $data Données à redacter
+     * @param int $depth Profondeur actuelle (pour éviter les boucles infinies)
+     * @return array Données redactées
+     */
+    private function redactSensitiveData(array $data, int $depth = 0): array
+    {
+        // Limiter la profondeur pour éviter les boucles infinies
+        if ($depth > 10) {
+            return [];
+        }
+
+        $redacted = [];
+
+        foreach ($data as $key => $value) {
+            $lowerKey = strtolower($key);
+
+            // Vérifier si la clé est sensible
+            $isSensitive = false;
+            foreach (self::SENSITIVE_KEYS as $sensitiveKey) {
+                if (strpos($lowerKey, strtolower($sensitiveKey)) !== false) {
+                    $isSensitive = true;
+                    break;
+                }
+            }
+
+            if ($isSensitive) {
+                $redacted[$key] = '***REDACTED***';
+            } elseif (is_array($value)) {
+                $redacted[$key] = $this->redactSensitiveData($value, $depth + 1);
+            } else {
+                $redacted[$key] = $value;
+            }
+        }
+
+        return $redacted;
+    }
+}

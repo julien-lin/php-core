@@ -232,6 +232,9 @@ class ViewCacheTest extends TestCase
         // Attendre pour que le mtime change (certains systèmes ont une résolution de 1 seconde)
         sleep(2);
         
+        // Vider le cache de métadonnées pour forcer la relecture du mtime
+        View::clearInternalCaches();
+        
         // Le rendu devrait détecter que le header a changé (via getCachedContent qui vérifie le mtime)
         // et utiliser le nouveau header
         $content2 = $view->render(['title' => 'Test']);

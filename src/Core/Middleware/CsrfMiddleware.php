@@ -108,14 +108,28 @@ class CsrfMiddleware implements Middleware
 
     /**
      * Retourne le token CSRF actuel (pour les formulaires)
+     * 
+     * Note: Cette méthode statique utilise la clé de session par défaut '_csrf_token'.
+     * Pour utiliser une clé personnalisée, créez une instance de CsrfMiddleware
+     * et utilisez getTokenFromInstance().
      */
     public static function getToken(): string
+    {
+        return self::getTokenWithKey('_csrf_token');
+    }
+
+    /**
+     * Retourne le token CSRF avec une clé de session spécifique
+     * 
+     * @param string $sessionKey Clé de session à utiliser
+     * @return string Token CSRF
+     */
+    private static function getTokenWithKey(string $sessionKey): string
     {
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
 
-        $sessionKey = '_csrf_token';
         if (!isset($_SESSION[$sessionKey])) {
             $_SESSION[$sessionKey] = bin2hex(random_bytes(32));
         }
@@ -124,12 +138,38 @@ class CsrfMiddleware implements Middleware
     }
 
     /**
+     * Retourne le token CSRF depuis cette instance (utilise la clé configurée)
+     * 
+     * @return string Token CSRF
+     */
+    public function getTokenFromInstance(): string
+    {
+        return self::getTokenWithKey($this->sessionKey);
+    }
+
+    /**
      * Génère un champ hidden pour les formulaires
+     * 
+     * @param string $tokenName Nom du champ (par défaut: '_token')
+     * @return string HTML du champ hidden
      */
     public static function field(string $tokenName = '_token'): string
     {
         $token = self::getToken();
         return '<input type="hidden" name="' . htmlspecialchars($tokenName) . '" value="' . htmlspecialchars($token) . '">';
+    }
+
+    /**
+     * Génère un champ hidden pour les formulaires avec le token de cette instance
+     * 
+     * @param string $tokenName Nom du champ (par défaut: celui configuré dans l'instance)
+     * @return string HTML du champ hidden
+     */
+    public function fieldFromInstance(string $tokenName = null): string
+    {
+        $name = $tokenName ?? $this->tokenName;
+        $token = $this->getTokenFromInstance();
+        return '<input type="hidden" name="' . htmlspecialchars($name) . '" value="' . htmlspecialchars($token) . '">';
     }
 }
 

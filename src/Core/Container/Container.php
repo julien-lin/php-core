@@ -29,6 +29,30 @@ class Container
     private array $reflectionCache = [];
 
     /**
+     * Cache de requête pour les instances résolues (durée d'une requête)
+     * Améliore les performances en évitant de résoudre plusieurs fois la même classe
+     */
+    private array $requestCache = [];
+
+    // ✅ PHASE 2: CIRCULAR DEPENDENCY PROTECTION
+
+    /**
+     * Profondeur actuelle de résolution de dépendances
+     * Utilisée pour détecter les dépendances circulaires
+     */
+    private int $resolutionDepth = 0;
+
+    /**
+     * Profondeur maximale autorisée (protection contre les chaînes infinies)
+     */
+    private const MAX_RESOLUTION_DEPTH = 20;
+
+    /**
+     * Classes en cours de résolution (détecte les dépendances circulaires)
+     */
+    private array $resolving = [];
+
+    /**
      * Enregistre un binding
      *
      * @param string $abstract Nom abstrait ou classe
@@ -65,6 +89,12 @@ class Container
             return $this->instances[$abstract];
         }
 
+        // Si on a une instance dans le cache de requête ET pas de paramètres custom
+        // (le cache de requête ne fonctionne que pour les résolutions sans paramètres)
+        if (empty($parameters) && isset($this->requestCache[$abstract])) {
+            return $this->requestCache[$abstract];
+        }
+
         // Vérifier si on a un binding
         if (isset($this->bindings[$abstract])) {
             $binding = $this->bindings[$abstract];
@@ -81,13 +111,25 @@ class Container
             // Si c'est un singleton, stocker l'instance
             if ($binding['singleton']) {
                 $this->instances[$abstract] = $instance;
+            } else {
+                // Si pas singleton mais pas de paramètres custom, mettre en cache de requête
+                if (empty($parameters)) {
+                    $this->requestCache[$abstract] = $instance;
+                }
             }
 
             return $instance;
         }
 
         // Pas de binding, résoudre directement la classe
-        return $this->resolve($abstract, $parameters);
+        $instance = $this->resolve($abstract, $parameters);
+
+        // Mettre en cache de requête si pas de paramètres custom
+        if (empty($parameters)) {
+            $this->requestCache[$abstract] = $instance;
+        }
+
+        return $instance;
     }
 
     /**
@@ -99,25 +141,51 @@ class Container
      */
     private function resolve(string $class, array $parameters = []): object
     {
-        $reflection = $this->getReflection($class);
-
-        if (!$reflection->isInstantiable()) {
-            // Extraire le nom simple de la classe (sans namespace)
-            $className = basename(str_replace('\\', '/', $class));
-            throw new \RuntimeException("La classe {$className} n'est pas instanciable.");
+        // ✅ PHASE 2: Vérifier la profondeur de résolution
+        if ($this->resolutionDepth >= self::MAX_RESOLUTION_DEPTH) {
+            throw new \RuntimeException(
+                "Max resolution depth ({$this->resolutionDepth}) exceeded while resolving {$class}. " .
+                    "Check for circular dependencies or very deep dependency chains."
+            );
         }
 
-        $constructor = $reflection->getConstructor();
-
-        // Pas de constructeur, instancier directement
-        if ($constructor === null) {
-            return new $class();
+        // ✅ PHASE 2: Détecter les dépendances circulaires
+        if (isset($this->resolving[$class])) {
+            throw new \RuntimeException(
+                "Circular dependency detected for class {$class}. " .
+                    "Dependency chain: " . implode(" → ", array_keys($this->resolving)) . " → {$class}"
+            );
         }
 
-        // Résoudre les dépendances du constructeur
-        $dependencies = $this->resolveDependencies($constructor->getParameters(), $parameters);
+        // Marquer la classe comme en cours de résolution
+        $this->resolving[$class] = true;
+        $this->resolutionDepth++;
 
-        return $reflection->newInstanceArgs($dependencies);
+        try {
+            $reflection = $this->getReflection($class);
+
+            if (!$reflection->isInstantiable()) {
+                // Extraire le nom simple de la classe (sans namespace)
+                $className = basename(str_replace('\\', '/', $class));
+                throw new \RuntimeException("La classe {$className} n'est pas instanciable.");
+            }
+
+            $constructor = $reflection->getConstructor();
+
+            // Pas de constructeur, instancier directement
+            if ($constructor === null) {
+                return new $class();
+            }
+
+            // Résoudre les dépendances du constructeur
+            $dependencies = $this->resolveDependencies($constructor->getParameters(), $parameters);
+
+            return $reflection->newInstanceArgs($dependencies);
+        } finally {
+            // Nettoyer les marqueurs de résolution
+            unset($this->resolving[$class]);
+            $this->resolutionDepth--;
+        }
     }
 
     /**
@@ -201,6 +269,14 @@ class Container
     }
 
     /**
+     * Vide le cache de requête (à appeler en fin de requête)
+     */
+    public function clearRequestCache(): void
+    {
+        $this->requestCache = [];
+    }
+
+    /**
      * Vide tous les bindings et instances
      */
     public function flush(): void
@@ -208,6 +284,6 @@ class Container
         $this->bindings = [];
         $this->instances = [];
         $this->reflectionCache = [];
+        $this->requestCache = [];
     }
 }
-

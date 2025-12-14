@@ -12,6 +12,35 @@ class SimpleLogger implements LoggerInterface
     private string $logPath;
     private int $minLevel;
     private ?array $rotationConfig;
+    private ?int $lastRotationCheck = null;
+
+    private const ROTATION_CHECK_INTERVAL = 100; // Vérifier la rotation toutes les 100 écritures
+
+    /**
+     * ✅ Clés sensibles à redacter du logging
+     */
+    private const SENSITIVE_KEYS = [
+        'password',
+        'passwd',
+        'pwd',
+        'token',
+        'access_token',
+        'refresh_token',
+        'api_key',
+        'api_secret',
+        'secret',
+        'private_key',
+        'credit_card',
+        'card_number',
+        'cvv',
+        'cvc',
+        'ssn',
+        'social_security',
+        'authorization',
+        'cookie',
+        'session_id',
+        'jwt',
+    ];
 
     private const LEVELS = [
         'debug' => 0,
@@ -35,21 +64,21 @@ class SimpleLogger implements LoggerInterface
     public function __construct(?string $logPath = null, string|int $minLevel = 'debug', ?array $rotationConfig = null)
     {
         $this->logPath = $logPath ?? sys_get_temp_dir() . '/app.log';
-        
+
         // Gérer le niveau minimum (string ou int)
         if (is_string($minLevel)) {
             $this->minLevel = self::LEVELS[$minLevel] ?? 0;
         } else {
             $this->minLevel = max(0, min(7, $minLevel));
         }
-        
+
         // Configuration de rotation
         $this->rotationConfig = $rotationConfig ?? [
             'maxSize' => 10 * 1024 * 1024, // 10MB
             'maxFiles' => 5,
             'compress' => true,
         ];
-        
+
         // Créer le répertoire parent si nécessaire
         $logDir = dirname($this->logPath);
         if (!is_dir($logDir)) {
@@ -103,11 +132,21 @@ class SimpleLogger implements LoggerInterface
             return;
         }
 
-        // Vérifier et effectuer la rotation si nécessaire
-        $this->rotateIfNeeded();
+        // ✅ Redacter les données sensibles avant logging
+        $context = $this->redactSensitiveData($context);
+
+        // Vérifier la rotation seulement toutes les N écritures pour optimiser les performances
+        $checkRotation = $this->lastRotationCheck === null ||
+            ($this->lastRotationCheck % self::ROTATION_CHECK_INTERVAL === 0);
+
+        if ($checkRotation) {
+            $this->rotateIfNeeded();
+        }
+
+        $this->lastRotationCheck = ($this->lastRotationCheck ?? 0) + 1;
 
         $timestamp = date('Y-m-d H:i:s');
-        $contextStr = !empty($context) ? ' ' . json_encode($context) : '';
+        $contextStr = !empty($context) ? ' ' . json_encode($context, JSON_UNESCAPED_UNICODE) : '';
         $logMessage = "[{$timestamp}] [{$level}] {$message}{$contextStr}" . PHP_EOL;
 
         // S'assurer que le répertoire existe avant d'écrire
@@ -115,9 +154,50 @@ class SimpleLogger implements LoggerInterface
         if (!is_dir($logDir)) {
             @mkdir($logDir, 0755, true);
         }
-        
+
         // Écrire dans le fichier de log
         @error_log($logMessage, 3, $this->logPath);
+    }
+
+    /**
+     * ✅ Redacte les données sensibles d'un tableau
+     * Remplace les valeurs des clés sensibles par '***REDACTED***'
+     *
+     * @param array $data Données à redacter
+     * @param int $depth Profondeur actuelle (pour éviter les boucles infinies)
+     * @return array Données redactées
+     */
+    private function redactSensitiveData(array $data, int $depth = 0): array
+    {
+        // Limiter la profondeur pour éviter les boucles infinies
+        if ($depth > 10) {
+            return [];
+        }
+
+        $redacted = [];
+
+        foreach ($data as $key => $value) {
+            $lowerKey = strtolower($key);
+
+            // Vérifier si la clé est sensible
+            $isSensitive = false;
+            foreach (self::SENSITIVE_KEYS as $sensitiveKey) {
+                if (strpos($lowerKey, strtolower($sensitiveKey)) !== false) {
+                    $isSensitive = true;
+                    break;
+                }
+            }
+
+            if ($isSensitive) {
+                $redacted[$key] = '***REDACTED***';
+            } elseif (is_array($value)) {
+                $redacted[$key] = $this->redactSensitiveData($value, $depth + 1);
+            } else {
+                $redacted[$key] = $value;
+            }
+        }
+
+        return $redacted;
     }
 
     /**
@@ -158,7 +238,7 @@ class SimpleLogger implements LoggerInterface
 
         // Archiver le fichier actuel
         $archiveFile = $logDir . '/' . $logBaseName . '.1' . $extension;
-        
+
         if ($this->rotationConfig['compress']) {
             // Compresser le fichier actuel
             $content = file_get_contents($this->logPath);
@@ -221,4 +301,3 @@ class SimpleLogger implements LoggerInterface
         $this->rotationConfig = array_merge($this->rotationConfig ?? [], $config);
     }
 }
-

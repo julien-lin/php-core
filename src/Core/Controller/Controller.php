@@ -38,6 +38,9 @@ abstract class Controller implements ControllerInterface
      */
     protected function redirect(string $uri, int $status = 302, array $headers = []): Response
     {
+        // Valider et sécuriser l'URI pour éviter les open redirects
+        $uri = $this->validateRedirectUri($uri);
+        
         // Nettoyer l'URI pour éviter les injections
         $uri = $this->sanitizeHeaderValue($uri);
         
@@ -75,7 +78,55 @@ abstract class Controller implements ControllerInterface
     protected function back(): Response
     {
         $referer = $_SERVER['HTTP_REFERER'] ?? '/';
+        
+        // Valider que l'URL est relative ou du même domaine (protection open redirect)
+        if (!empty($referer)) {
+            $parsed = parse_url($referer);
+            $host = $parsed['host'] ?? null;
+            $currentHost = $_SERVER['HTTP_HOST'] ?? '';
+            
+            // Si c'est une URL absolue, vérifier le domaine
+            if ($host !== null && $host !== $currentHost) {
+                // Domaine différent, forcer à la racine pour éviter l'open redirect
+                $referer = '/';
+            }
+        }
+        
         return $this->redirect($referer);
+    }
+
+    /**
+     * Valide une URI de redirection pour éviter les open redirects
+     * 
+     * @param string $uri URI à valider
+     * @return string URI validée et sécurisée
+     */
+    private function validateRedirectUri(string $uri): string
+    {
+        // Si l'URI est vide ou commence par /, elle est valide (relative)
+        if (empty($uri) || $uri[0] === '/') {
+            return $uri;
+        }
+        
+        // Parser l'URI
+        $parsed = parse_url($uri);
+        
+        // Si pas de schéma (http/https), c'est une URL relative, donc valide
+        if (!isset($parsed['scheme'])) {
+            return $uri;
+        }
+        
+        // Si c'est une URL absolue, vérifier le domaine
+        $host = $parsed['host'] ?? null;
+        $currentHost = $_SERVER['HTTP_HOST'] ?? '';
+        
+        // Autoriser uniquement si c'est le même domaine
+        if ($host !== null && $host === $currentHost) {
+            return $uri;
+        }
+        
+        // Sinon, retourner la racine pour éviter l'open redirect
+        return '/';
     }
 
     /**
