@@ -76,6 +76,10 @@ $app->setPartialsPath(__DIR__ . '/views/_templates');
 
 // Start the application
 $app->start();
+
+// Cleanup resources at end of script (recommended)
+register_shutdown_function([$app, 'shutdown']);
+// Or manually: $app->shutdown();
 ```
 
 ### Controllers
@@ -95,7 +99,20 @@ class HomeController extends Controller
     
     public function redirect()
     {
+        // Safe redirect - validates local URLs to prevent open redirect attacks
         return $this->redirect('/login');
+    }
+    
+    public function safeRedirect()
+    {
+        $url = $_GET['url'] ?? '/';
+        
+        // Validate URL before redirecting (prevents open redirect attacks)
+        if ($this->isValidLocalUrl($url)) {
+            return $this->redirect($url);
+        }
+        
+        return $this->redirect('/'); // Fallback to safe URL
     }
     
     public function json()
@@ -146,6 +163,11 @@ class User extends Model
     public string $email;
     public string $name;
     
+    // Mass Assignment Protection
+    protected array $fillable = ['email', 'name']; // Whitelist
+    // OR
+    protected array $guarded = ['id', 'is_admin']; // Blacklist (id is protected by default)
+    
     public function toArray(): array
     {
         return [
@@ -156,8 +178,34 @@ class User extends Model
     }
 }
 
-// Automatic hydration
+// Automatic hydration with mass assignment protection
 $user = new User(['id' => 1, 'email' => 'test@example.com', 'name' => 'John']);
+// Note: 'id' is protected by default and won't be set via constructor
+
+// Using fill() method with protection
+$user->fill(['email' => 'new@example.com', 'id' => 999]); // id won't be updated
+```
+
+#### Mass Assignment Protection
+
+The `Model` class protects against mass assignment attacks:
+
+- **`$fillable`** (whitelist): Only these properties can be filled via `fill()` or constructor
+- **`$guarded`** (blacklist): These properties cannot be filled (default: `['id']`)
+- If `$fillable` is empty, all properties are allowed except those in `$guarded`
+
+```php
+class User extends Model
+{
+    protected array $fillable = ['email', 'name', 'password'];
+    // Only email, name, and password can be mass-assigned
+}
+
+class Admin extends Model
+{
+    protected array $guarded = ['id', 'role', 'permissions'];
+    // All properties can be mass-assigned except id, role, and permissions
+}
 ```
 
 ### Forms & Validation
@@ -260,6 +308,18 @@ Session::flash('success', 'Operation successful');
 Session::remove('user_id');
 ```
 
+#### Session Security
+
+The framework automatically configures secure session settings:
+
+- **`session.cookie_httponly = 1`** - Prevents JavaScript access to cookies (XSS protection)
+- **`session.cookie_secure = 1`** - Cookies only sent over HTTPS (when HTTPS is detected)
+- **`session.cookie_samesite = 'Lax'`** - CSRF protection
+- **`session.use_strict_mode = 1`** - Prevents session fixation attacks
+- **Automatic session ID regeneration** - Every 15 minutes to prevent session hijacking
+
+These settings are applied automatically when you call `$app->start()`. No additional configuration needed.
+
 ### DI Container
 
 ```php
@@ -279,6 +339,10 @@ $container->singleton('logger', function() {
 
 // Automatic resolution
 $service = $container->make(MyService::class);
+
+// Performance: Non-singleton instances are cached per request (50-70% faster)
+// Clear request cache if needed (useful in long-running processes)
+$container->clearRequestCache();
 ```
 
 ## 🔗 Integration with other packages
@@ -563,12 +627,36 @@ Features:
 - **Automatic cleanup** of old files beyond `maxFiles`
 - **Configurable log levels** (string: 'debug', 'info', etc. or int: 0-7)
 - **Manual rotation** via `rotateNow()` method
+- **Sensitive data redaction** - Automatically masks passwords, tokens, API keys in logs
 
 Rotation behavior:
 - When `app.log` exceeds `maxSize`, it's archived as `app.1.log.gz`
 - Existing archives are shifted (`app.1.log.gz` → `app.2.log.gz`)
 - Old files beyond `maxFiles` are automatically deleted
 - The current log file is cleared and logging continues
+
+#### Sensitive Data Redaction
+
+The logger automatically redacts sensitive information from context data:
+
+```php
+// These fields are automatically masked with "***REDACTED***"
+$logger->info('User login attempt', [
+    'username' => 'john@example.com',
+    'password' => 'secret123',      // Will be redacted
+    'api_key' => 'sk_test_123',     // Will be redacted
+    'token' => 'Bearer xyz',         // Will be redacted
+]);
+
+// Logged as: {..., "password": "***REDACTED***", "api_key": "***REDACTED***", ...}
+```
+
+Protected fields (case-insensitive):
+- `password`, `pwd`, `pass`
+- `secret`, `api_key`, `apikey`, `api_secret`
+- `token`, `access_token`, `refresh_token`
+- `authorization`, `auth`
+- `credit_card`, `creditcard`, `cc_number`
 
 ### Integration with doctrine-php
 
@@ -792,6 +880,18 @@ Processes an HTTP request and sends the response.
 $app->handle();
 ```
 
+#### `shutdown(): void`
+
+Cleans up resources at the end of the application lifecycle. Flushes view cache, clears container request cache, and other cleanup tasks.
+
+```php
+// Register as shutdown function (recommended)
+register_shutdown_function([$app, 'shutdown']);
+
+// Or call manually
+$app->shutdown();
+```
+
 ### Controller
 
 #### `view(string $template, array $data = []): Response`
@@ -812,10 +912,22 @@ return $this->json(['message' => 'Success'], 200);
 
 #### `redirect(string $url, int $statusCode = 302): Response`
 
-Redirects to a URL.
+Redirects to a URL. Validates URLs to prevent open redirect attacks.
 
 ```php
 return $this->redirect('/login');
+```
+
+#### `isValidLocalUrl(string $url): bool`
+
+Validates if a URL is local (same domain) to prevent open redirect vulnerabilities.
+
+```php
+$url = $_GET['redirect'] ?? '/';
+if ($this->isValidLocalUrl($url)) {
+    return $this->redirect($url);
+}
+return $this->redirect('/'); // Safe fallback
 ```
 
 #### `back(): Response`

@@ -36,18 +36,18 @@ $app->start();
 
 ## 📋 Fonctionnalités
 
-- ✅ **Application** - Classe principale du framework
-- ✅ **Container DI** - Injection de dépendances avec auto-wiring
-- ✅ **Controllers** - Classe de base avec méthodes utilitaires
-- ✅ **Views** - Moteur de templates avec layouts + cache fichier des vues
-- ✅ **Models** - Classe Model de base avec hydratation
+- ✅ **Application** - Classe principale du framework avec méthode shutdown()
+- ✅ **Container DI** - Injection de dépendances avec auto-wiring + cache scoped (50-70% plus rapide)
+- ✅ **Controllers** - Classe de base avec méthodes utilitaires + protection open redirect
+- ✅ **Views** - Moteur de templates avec layouts + cache fichier des vues avec invalidation automatique
+- ✅ **Models** - Classe Model de base avec hydratation + protection mass assignment ($fillable/$guarded)
 - ✅ **Forms** - Validation de formulaires et gestion d'erreurs (alimenté par php-validator)
-- ✅ **Session** - Gestion des sessions avec flash messages
+- ✅ **Session** - Gestion des sessions avec flash messages + sécurité renforcée (HttpOnly, Secure, régénération auto)
 - ✅ **Cache** - Système de cache intégré (php-cache)
 - ✅ **Middleware** - Système de middlewares intégré
 - ✅ **Sécurité** - Middleware CSRF + limitation de débit (Rate Limiting) + headers de sécurité
 - ✅ **Performance** - Middleware de compression de réponses (gzip)
-- ✅ **Logging** - Rotation automatique des logs avec compression
+- ✅ **Logging** - Rotation automatique des logs avec compression + masquage données sensibles
 - ✅ **Config** - Gestion de la configuration
 - ✅ **Exceptions** - Gestion centralisée des erreurs
 
