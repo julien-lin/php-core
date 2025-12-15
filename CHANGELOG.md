@@ -5,6 +5,47 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [1.4.4] - 2025-01-15
+
+### 🔒 Sécurité
+
+- **Remplacement de MD5 par xxh3/sha256** : Amélioration de la sécurité des hash de cache
+  - `View::getCacheFilePath()` : Utilise maintenant xxh3 (si disponible) ou sha256 au lieu de MD5
+  - `ErrorHandler::generateErrorPageHtml()` : Utilise maintenant xxh3 (si disponible) ou sha256 au lieu de MD5
+  - Tests ajoutés pour valider l'utilisation des algorithmes sécurisés (`HashSecurityTest.php`)
+
+### ⚡ Optimisation
+
+- **Optimisation de la régénération de session** : Correction pour respecter l'intervalle de 15 minutes
+  - `Application::start()` : Appelle maintenant `manageSessionRegeneration()` à chaque requête, même si la session est déjà démarrée
+  - Vérification de l'intervalle de 15 minutes (`SESSION_REGENERATION_INTERVAL = 900`) à chaque requête
+  - Tests complets ajoutés (`SessionRegenerationTest.php`) : 8 tests pour valider le comportement
+
+### 🧪 Tests
+
+- **Tests supplémentaires** : Amélioration de la couverture de tests
+  - `HashSecurityTest.php` : 7 tests (3 nouveaux) pour valider les hash sécurisés
+    - Vérification du code source (pas de MD5)
+    - Tests de cohérence et unicité des hash
+  - `ContainerRouterIntegrationTest.php` : 7 tests pour l'intégration Container + Router
+    - Résolution automatique des dépendances dans les contrôleurs
+    - Partage des singletons
+    - Nettoyage du cache de requête
+  - `SessionRegenerationTest.php` : 8 tests pour la régénération de session
+    - Vérification de la constante (900 secondes)
+    - Tests de régénération à l'initialisation
+    - Tests de non-régénération avant l'intervalle
+    - Tests de régénération après l'intervalle
+    - Tests avec fallback sur `_created_at`
+
+### 📝 Documentation
+
+- **Documentation technique complète** : Création de 4 fichiers de documentation
+  - `DOCUMENTATION/ARCHITECTURE.md` : Architecture globale du framework (465 lignes)
+  - `DOCUMENTATION/CONTAINER.md` : Container DI et auto-wiring (458 lignes)
+  - `DOCUMENTATION/MIDDLEWARES.md` : Middlewares disponibles (421 lignes)
+  - `DOCUMENTATION/SECURITY.md` : Mesures de sécurité (515 lignes)
+
 ## [1.4.3] - 2025-01-07
 
 ### 🔒 Sécurité
@@ -36,7 +77,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - **View** : Cache des chemins et contenus de fichiers partiels (20-30% plus rapide)
 - **ErrorHandler** : Cache des pages d'erreur générées
 - **SimpleLogger** : Rotation optimisée (réduction de 99% des appels `filesize()`)
-- **View Cache** : Hash plus rapide (xxh3/md5 au lieu de SHA256)
+- **View Cache** : Hash optimisé (xxh3/sha256 au lieu de MD5)
 - **Application** : Méthode `shutdown()` pour nettoyage automatique des ressources
 
 ### 🧪 Tests

@@ -108,7 +108,7 @@ class CompressionMiddlewareTest extends TestCase
 
         $middleware = new CompressionMiddleware(['level' => 9]); // Compression maximale
         $response = new Response(200, str_repeat('a', 5000));
-        $response->header('Content-Type', 'text/html');
+        $response->setHeader('Content-Type', 'text/html');
 
         $compressed = $middleware->compress($response);
 

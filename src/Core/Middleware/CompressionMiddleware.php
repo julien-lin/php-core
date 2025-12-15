@@ -72,7 +72,8 @@ class CompressionMiddleware implements MiddlewareInterface
         }
 
         // Vérifier le Content-Type
-        $contentType = $response->getHeader('Content-Type', '');
+        $headers = $response->getHeaders();
+        $contentType = $headers['content-type'] ?? '';
         if (!$this->shouldCompressContentType($contentType)) {
             return $response;
         }
