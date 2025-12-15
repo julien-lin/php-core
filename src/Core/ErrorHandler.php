@@ -250,7 +250,14 @@ class ErrorHandler
     private function generateErrorPageHtml(int $code, string $title, string $message, array $errors = []): string
     {
         // Créer une clé de cache basée sur le code, titre, message et erreurs
-        $cacheKey = md5($code . '_' . $title . '_' . $message . '_' . serialize($errors));
+        // Utiliser xxh3 si disponible (PHP 8.1+), sinon sha256 (plus sûr que MD5)
+        $cacheData = $code . '_' . $title . '_' . $message . '_' . serialize($errors);
+        if (function_exists('hash') && in_array('xxh3', hash_algos(), true)) {
+            $cacheKey = hash('xxh3', $cacheData);
+        } else {
+            // Utiliser sha256 au lieu de MD5 pour des raisons de sécurité
+            $cacheKey = hash('sha256', $cacheData);
+        }
 
         // Vérifier le cache
         if (isset(self::$errorPageCache[$cacheKey])) {

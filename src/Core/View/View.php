@@ -470,16 +470,16 @@ class View
             $hashData['footer_mtime'] = $this->getCachedMTime($footerPath);
         }
 
-        // Utiliser un hash rapide pour le cache (xxh3 si disponible, sinon md5)
-        // MD5 est suffisant ici car ce n'est pas cryptographique, juste pour identifier le cache
+        // Utiliser un hash rapide pour le cache (xxh3 si disponible, sinon sha256)
+        // xxh3 est plus rapide que sha256, mais sha256 est plus sûr que MD5
         $json = json_encode($hashData, JSON_THROW_ON_ERROR);
 
-        // Utiliser xxh3 si disponible (PHP 8.1+), sinon md5 (plus rapide que sha256)
+        // Utiliser xxh3 si disponible (PHP 8.1+), sinon sha256 (plus sûr que MD5)
         if (function_exists('hash') && in_array('xxh3', hash_algos(), true)) {
             $hash = hash('xxh3', $json);
         } else {
-            // MD5 est suffisant pour un hash de cache (pas de problème de sécurité)
-            $hash = md5($json);
+            // Utiliser sha256 au lieu de MD5 pour des raisons de sécurité
+            $hash = hash('sha256', $json);
         }
 
         // Limiter la longueur du hash pour des noms de fichiers plus courts

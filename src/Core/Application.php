@@ -159,8 +159,12 @@ class Application
         if (session_status() === PHP_SESSION_NONE) {
             $this->configureSecureSession();
             session_start();
+        }
 
-            // ✅ Régénérer l'ID selon l'intervalle
+        // ✅ Régénérer l'ID selon l'intervalle (vérifie à chaque requête)
+        // Cette vérification doit être faite même si la session est déjà démarrée
+        // pour respecter l'intervalle de 15 minutes
+        if (session_status() === PHP_SESSION_ACTIVE) {
             $this->manageSessionRegeneration();
         }
 
