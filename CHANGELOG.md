@@ -18,6 +18,12 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - L’exclusion CSRF `/api` respecte désormais les limites de segment et ne couvre pas `/api-public`.
 - `CsrfMiddleware` implémente désormais le contrat middleware commun et corrige sa signature nullable pour PHP 8.5.
 
+## [1.4.6] - 2026-10-05
+
+### Compatibilité
+
+- Les vues `.html.vis` sont maintenant résolues par `View` lorsque Vision est installé, avec repli sur les vues `.html.php`.
+
 ## [1.4.5] - 2026-10-05
 
 ### Compatibilité

@@ -574,13 +574,20 @@ class View
         // Préfixe pour les vues partielles
         $prefix = $this->complete ? '' : '_';
 
-        $fullPath = $viewsPath
+        $basePath = $viewsPath
             . DIRECTORY_SEPARATOR
             . $category
             . DIRECTORY_SEPARATOR
             . $prefix
-            . $filename
-            . '.html.php';
+            . $filename;
+
+        $phpPath = $basePath . '.html.php';
+        $visionPath = $basePath . '.html.vis';
+
+        // Utiliser une vue Vision lorsqu'elle existe, sinon conserver le format PHP.
+        $fullPath = class_exists(\JulienLinard\Vision\Vision::class) && file_exists($visionPath)
+            ? $visionPath
+            : $phpPath;
 
         // Mettre en cache
         self::$viewPathCache[$cacheKey] = $fullPath;
