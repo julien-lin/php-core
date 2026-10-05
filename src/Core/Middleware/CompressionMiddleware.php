@@ -63,6 +63,20 @@ class CompressionMiddleware implements MiddlewareInterface
             return $response;
         }
 
+        // Ne jamais compresser une réponse déjà encodée ou gérée par un
+        // transfert particulier : le routeur ou le serveur HTTP en est
+        // déjà responsable.
+        $headers = $response->getHeaders();
+        if (isset($headers['content-encoding']) || isset($headers['transfer-encoding'])) {
+            return $response;
+        }
+
+        // Ces statuts ne doivent pas contenir de corps HTTP.
+        $statusCode = $response->getStatusCode();
+        if ($statusCode < 200 || in_array($statusCode, [204, 304], true)) {
+            return $response;
+        }
+
         $content = $response->getContent();
         $contentLength = strlen($content);
 
@@ -72,7 +86,6 @@ class CompressionMiddleware implements MiddlewareInterface
         }
 
         // Vérifier le Content-Type
-        $headers = $response->getHeaders();
         $contentType = $headers['content-type'] ?? '';
         if (!$this->shouldCompressContentType($contentType)) {
             return $response;

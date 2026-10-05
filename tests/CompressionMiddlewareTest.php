@@ -157,6 +157,37 @@ class CompressionMiddlewareTest extends TestCase
         unset($_SERVER['HTTP_ACCEPT_ENCODING']);
     }
 
+    public function testAlreadyEncodedResponseIsNotCompressedAgain(): void
+    {
+        $_SERVER['HTTP_ACCEPT_ENCODING'] = 'gzip';
+
+        $middleware = new CompressionMiddleware();
+        $response = new Response(200, str_repeat('a', 2000));
+        $response->setHeader('Content-Type', 'text/html');
+        $response->setHeader('Content-Encoding', 'br');
+
+        $result = $middleware->compress($response);
+
+        $this->assertSame($response, $result);
+        $this->assertSame('br', $result->getHeaders()['content-encoding']);
+        unset($_SERVER['HTTP_ACCEPT_ENCODING']);
+    }
+
+    public function testTransferEncodedAndBodylessResponsesAreNotCompressed(): void
+    {
+        $_SERVER['HTTP_ACCEPT_ENCODING'] = 'gzip';
+        $middleware = new CompressionMiddleware();
+
+        $transferEncoded = new Response(200, str_repeat('a', 2000));
+        $transferEncoded->setHeader('Transfer-Encoding', 'chunked');
+        $this->assertSame($transferEncoded, $middleware->compress($transferEncoded));
+
+        $noContent = new Response(204, str_repeat('a', 2000));
+        $this->assertSame($noContent, $middleware->compress($noContent));
+
+        unset($_SERVER['HTTP_ACCEPT_ENCODING']);
+    }
+
     public function testCustomContentTypes()
     {
         $_SERVER['HTTP_ACCEPT_ENCODING'] = 'gzip';
