@@ -182,6 +182,14 @@ class Phase2OptimizationTest extends TestCase
         $this->assertInstanceOf(RequestValidationMiddleware::class, $middleware);
     }
 
+    public function test_request_validation_can_target_api_paths_only(): void
+    {
+        $middleware = new RequestValidationMiddleware(52_428_800, ['/api']);
+
+        $this->assertNull($middleware->handle(new Request('/health', 'POST')));
+        $this->assertSame(400, $middleware->handle(new Request('/api/products', 'POST'))?->getStatusCode());
+    }
+
     public function test_request_validation_sanitize_basic(): void
     {
         $dirty = [

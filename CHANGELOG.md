@@ -14,6 +14,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - Les tests de validation des noms de fichiers de configuration vérifient explicitement les avertissements attendus.
 - La compression ignore désormais les réponses déjà encodées, transférées ou sans corps HTTP.
 - `CorsMiddleware` ajoute maintenant ses headers aux réponses normales via le contrat de post-traitement du routeur.
+- La validation des requêtes et le rate limiting peuvent cibler une liste de préfixes de routes.
 
 ## [1.4.4] - 2025-01-15
 

@@ -70,6 +70,24 @@ class RateLimitMiddlewareTest extends TestCase
         $this->assertNull($response);
     }
 
+    public function testPathPrefixesLeaveHealthRoutesUnlimited(): void
+    {
+        $middleware = new RateLimitMiddleware(1, 60, $this->storagePath, ['/api']);
+        $healthRequest = $this->mockRequest('127.0.0.1', '/health');
+
+        $this->assertNull($middleware->handle($healthRequest));
+        $this->assertNull($middleware->handle($healthRequest));
+    }
+
+    public function testPathPrefixesLimitOnlyApiRoutes(): void
+    {
+        $middleware = new RateLimitMiddleware(1, 60, $this->storagePath, ['/api']);
+        $apiRequest = $this->mockRequest('127.0.0.1', '/api/products');
+
+        $this->assertNull($middleware->handle($apiRequest));
+        $this->assertSame(429, $middleware->handle($apiRequest)?->getStatusCode());
+    }
+
     private function mockRequest(string $ip, string $path): Request
     {
         $request = $this->getMockBuilder(Request::class)

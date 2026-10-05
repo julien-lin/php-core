@@ -38,14 +38,19 @@ class RequestValidationMiddleware implements MiddlewareInterface
      */
     private array $requiredHeaders = [];
 
+    /** @var list<string> Préfixes de routes ciblés, vide = toutes les routes */
+    private array $pathPrefixes;
+
     /**
      * Constructeur
      * 
      * @param int $maxPayloadSize Taille maximale en octets
+     * @param list<string> $pathPrefixes Préfixes ciblés, vide = toutes les routes
      */
-    public function __construct(int $maxPayloadSize = 52_428_800)
+    public function __construct(int $maxPayloadSize = 52_428_800, array $pathPrefixes = [])
     {
         $this->maxPayloadSize = $maxPayloadSize;
+        $this->pathPrefixes = $pathPrefixes;
     }
 
     /**
@@ -71,6 +76,10 @@ class RequestValidationMiddleware implements MiddlewareInterface
      */
     public function handle(Request $request): ?Response
     {
+        if (!$this->matchesPath($request->getPath())) {
+            return null;
+        }
+
         $method = $request->getMethod();
 
         // Valider Content-Type pour méthodes de mutation
@@ -95,6 +104,22 @@ class RequestValidationMiddleware implements MiddlewareInterface
 
         // Continuer le pipeline
         return null;
+    }
+
+    private function matchesPath(string $path): bool
+    {
+        if ($this->pathPrefixes === []) {
+            return true;
+        }
+
+        foreach ($this->pathPrefixes as $prefix) {
+            $prefix = rtrim($prefix, '/') ?: '/';
+            if ($path === $prefix || str_starts_with($path, $prefix . '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

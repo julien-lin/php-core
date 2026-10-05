@@ -18,6 +18,8 @@ class RateLimitMiddleware implements MiddlewareInterface
     private int $maxRequests;
     private int $windowSeconds;
     private string $storagePath;
+    /** @var list<string> Préfixes de routes ciblés, vide = toutes les routes */
+    private array $pathPrefixes;
     
     /**
      * Cache mémoire simple (durée de la requête) pour améliorer les performances
@@ -39,11 +41,18 @@ class RateLimitMiddleware implements MiddlewareInterface
      * @param int $maxRequests Nombre max de requêtes
      * @param int $windowSeconds Fenêtre en secondes
      * @param string|null $storagePath Dossier de stockage (par défaut: sys_get_temp_dir())
+     * @param list<string> $pathPrefixes Préfixes ciblés, vide = toutes les routes
      */
-    public function __construct(int $maxRequests = 100, int $windowSeconds = 60, ?string $storagePath = null)
+    public function __construct(
+        int $maxRequests = 100,
+        int $windowSeconds = 60,
+        ?string $storagePath = null,
+        array $pathPrefixes = []
+    )
     {
         $this->maxRequests = $maxRequests;
         $this->windowSeconds = $windowSeconds;
+        $this->pathPrefixes = $pathPrefixes;
         $this->storagePath = $storagePath ?? sys_get_temp_dir() . '/core-php-rate-limit';
         if (!is_dir($this->storagePath)) {
             // Permissions sécurisées: 0750 (rwxr-x---) au lieu de 0777
@@ -53,6 +62,10 @@ class RateLimitMiddleware implements MiddlewareInterface
 
     public function handle(Request $request): ?Response
     {
+        if (!$this->matchesPath($request->getPath())) {
+            return null;
+        }
+
         // Nettoyer périodiquement le cache mémoire
         $this->cleanupIfNeeded();
         
@@ -86,6 +99,22 @@ class RateLimitMiddleware implements MiddlewareInterface
 
         // Si pas dans le cache mémoire, utiliser le système de fichiers
         return $this->handleWithFile($key, $now);
+    }
+
+    private function matchesPath(string $path): bool
+    {
+        if ($this->pathPrefixes === []) {
+            return true;
+        }
+
+        foreach ($this->pathPrefixes as $prefix) {
+            $prefix = rtrim($prefix, '/') ?: '/';
+            if ($path === $prefix || str_starts_with($path, $prefix . '/')) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
