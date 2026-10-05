@@ -9,6 +9,8 @@ use JulienLinard\Core\Application;
 use JulienLinard\Core\Container\Container;
 use JulienLinard\Core\Middleware\CorsMiddleware;
 use JulienLinard\Core\Middleware\RequestValidationMiddleware;
+use JulienLinard\Router\Request;
+use JulienLinard\Router\Response;
 
 /**
  * Tests pour Phase 2 - Optimisations Importantes
@@ -139,6 +141,35 @@ class Phase2OptimizationTest extends TestCase
             ->setMaxAge(7200);
 
         $this->assertSame($middleware, $result);
+    }
+
+    public function test_cors_middleware_applies_headers_to_normal_responses(): void
+    {
+        $_SERVER['HTTP_ORIGIN'] = 'https://example.com';
+
+        $middleware = new CorsMiddleware('https://example.com');
+        $this->assertNull($middleware->handle(new Request('/api/products', 'GET')));
+
+        $response = $middleware->applyToResponse(new Response(200, 'ok'));
+        $headers = $response->getHeaders();
+
+        $this->assertSame('https://example.com', $headers['access-control-allow-origin'] ?? null);
+        $this->assertSame('GET,POST,PUT,DELETE,PATCH,OPTIONS', $headers['access-control-allow-methods'] ?? null);
+
+        unset($_SERVER['HTTP_ORIGIN'], $_SERVER['_CORS_ORIGIN']);
+    }
+
+    public function test_cors_middleware_does_not_apply_headers_to_disallowed_origins(): void
+    {
+        $_SERVER['HTTP_ORIGIN'] = 'https://evil.example';
+
+        $middleware = new CorsMiddleware('https://example.com');
+        $this->assertNull($middleware->handle(new Request('/api/products', 'GET')));
+
+        $headers = $middleware->applyToResponse(new Response(200, 'ok'))->getHeaders();
+        $this->assertArrayNotHasKey('access-control-allow-origin', $headers);
+
+        unset($_SERVER['HTTP_ORIGIN'], $_SERVER['_CORS_ORIGIN']);
     }
 
     /**

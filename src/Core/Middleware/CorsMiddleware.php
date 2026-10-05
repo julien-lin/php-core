@@ -91,6 +91,10 @@ class CorsMiddleware implements MiddlewareInterface
      */
     public function handle(Request $request): ?Response
     {
+        // Éviter qu'une origine autorisée d'une requête précédente ne soit
+        // réutilisée dans un processus long vivant ou dans les tests.
+        unset($_SERVER['_CORS_ORIGIN']);
+
         // Déterminer l'origine de la requête
         $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 
@@ -111,6 +115,22 @@ class CorsMiddleware implements MiddlewareInterface
         // mais enregistrer l'origine pour un traitement ultérieur
         $_SERVER['_CORS_ORIGIN'] = $origin;
         return null;
+    }
+
+    /**
+     * Ajoute les headers CORS aux réponses non-preflight.
+     *
+     * Le routeur appelle cette étape après l'exécution du contrôleur afin que
+     * les réponses normales et les réponses d'erreur aient le même contrat.
+     */
+    public function applyToResponse(Response $response): Response
+    {
+        $origin = $_SERVER['_CORS_ORIGIN'] ?? '';
+        if ($origin !== '' && $this->isOriginAllowed($origin)) {
+            $this->addCorsHeaders($response, $origin);
+        }
+
+        return $response;
     }
 
     /**
