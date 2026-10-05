@@ -11,7 +11,7 @@ use JulienLinard\Router\Response;
 /**
  * Middleware de protection CSRF
  */
-class CsrfMiddleware implements Middleware
+class CsrfMiddleware implements MiddlewareInterface
 {
     private string $tokenName;
     private string $sessionKey;
@@ -166,7 +166,7 @@ class CsrfMiddleware implements Middleware
      * @param string $tokenName Nom du champ (par défaut: celui configuré dans l'instance)
      * @return string HTML du champ hidden
      */
-    public function fieldFromInstance(string $tokenName = null): string
+    public function fieldFromInstance(?string $tokenName = null): string
     {
         $name = $tokenName ?? $this->tokenName;
         $token = $this->getTokenFromInstance();

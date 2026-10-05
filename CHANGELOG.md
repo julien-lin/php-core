@@ -16,6 +16,13 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - `CorsMiddleware` ajoute maintenant ses headers aux réponses normales via le contrat de post-traitement du routeur.
 - La validation des requêtes et le rate limiting peuvent cibler une liste de préfixes de routes.
 - L’exclusion CSRF `/api` respecte désormais les limites de segment et ne couvre pas `/api-public`.
+- `CsrfMiddleware` implémente désormais le contrat middleware commun et corrige sa signature nullable pour PHP 8.5.
+
+## [1.4.5] - 2026-10-05
+
+### Compatibilité
+
+- Publication du contrat middleware commun pour les profils sécurisés du skeleton.
 
 ## [1.4.4] - 2025-01-15
 
