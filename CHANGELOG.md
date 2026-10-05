@@ -5,6 +5,14 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 Le format est basé sur [Keep a Changelog](https://keepachangelog.com/fr/1.0.0/),
 et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 
+## [Unreleased]
+
+### Sécurité et middleware
+
+- L’interface `MiddlewareInterface` étend désormais le contrat de `php-router`.
+- Ajout de tests d’intégration pour l’enregistrement des middlewares Core dans le routeur.
+- Les tests de validation des noms de fichiers de configuration vérifient explicitement les avertissements attendus.
+
 ## [1.4.4] - 2025-01-15
 
 ### 🔒 Sécurité

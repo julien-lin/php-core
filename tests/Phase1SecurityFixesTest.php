@@ -120,16 +120,30 @@ class Phase1SecurityFixesTest extends TestCase
             file_put_contents($tmpDir . '/invalid!name.php', '<?php return ["test" => "value"];');
             file_put_contents($tmpDir . '/another-invalid@.php', '<?php return ["test" => "value"];');
 
-            // Charger la configuration
-            $config = ConfigLoader::load($tmpDir);
+            // Charger la configuration en capturant les avertissements attendus.
+            $warnings = [];
+            set_error_handler(static function (int $severity, string $message) use (&$warnings): bool {
+                if ($severity === E_USER_WARNING) {
+                    $warnings[] = $message;
+                    return true;
+                }
+
+                return false;
+            });
+            try {
+                $config = ConfigLoader::load($tmpDir);
+            } finally {
+                restore_error_handler();
+            }
 
             // Vérifier que les fichiers valides sont chargés
             $this->assertArrayHasKey('valid', $config);
             $this->assertArrayHasKey('valid-name', $config);
 
-            // Vérifier que les fichiers invalides sont skippés (pas de warning levée = ok)
+            // Vérifier que les fichiers invalides sont skippés et signalés.
             $this->assertArrayNotHasKey('invalid!name', $config);
             $this->assertArrayNotHasKey('another-invalid@', $config);
+            $this->assertCount(2, $warnings);
         } finally {
             // Nettoyer
             @unlink($tmpDir . '/valid.php');

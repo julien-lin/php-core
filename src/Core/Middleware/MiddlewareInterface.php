@@ -11,7 +11,7 @@ use JulienLinard\Router\Response;
  * Interface pour les middlewares du framework Core PHP
  * Compatible avec php-router
  */
-interface MiddlewareInterface
+interface MiddlewareInterface extends \JulienLinard\Router\Middleware
 {
     /**
      * Traite la requête
@@ -21,4 +21,3 @@ interface MiddlewareInterface
      */
     public function handle(Request $request): ?Response;
 }
-

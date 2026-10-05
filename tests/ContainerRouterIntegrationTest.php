@@ -56,10 +56,10 @@ class ContainerRouterIntegrationTest extends TestCase
         $container = $this->app->getContainer();
         
         // Enregistrer un service dans le Container
-        $container->singleton(TestService::class, fn() => new TestService());
+        $container->singleton(RouterTestService::class, fn() => new RouterTestService());
         
         // Enregistrer les routes du contrôleur
-        $router->registerRoutes(TestController::class);
+        $router->registerRoutes(RouterTestController::class);
         
         // Créer une requête
         $request = new Request('/test', 'GET');
@@ -96,14 +96,14 @@ class ContainerRouterIntegrationTest extends TestCase
         $router = $this->app->getRouter();
         
         // Enregistrer un singleton
-        $container->singleton(TestService::class, fn() => new TestService());
+        $container->singleton(RouterTestService::class, fn() => new RouterTestService());
         
         // Récupérer via Container
-        $service1 = $container->make(TestService::class);
+        $service1 = $container->make(RouterTestService::class);
         
         // Récupérer via Router (si le Router utilise le Container)
         // Le Router devrait utiliser le même Container
-        $service2 = $container->make(TestService::class);
+        $service2 = $container->make(RouterTestService::class);
         
         // Les deux instances devraient être les mêmes (singleton)
         $this->assertSame($service1, $service2);
@@ -118,8 +118,8 @@ class ContainerRouterIntegrationTest extends TestCase
         $router = $this->app->getRouter();
         
         // Enregistrer les services nécessaires
-        $container->singleton(TestService::class, fn() => new TestService());
-        $container->singleton(TestLogger::class, fn() => new TestLogger());
+        $container->singleton(RouterTestService::class, fn() => new RouterTestService());
+        $container->singleton(RouterTestLogger::class, fn() => new RouterTestLogger());
         
         // Enregistrer les routes du contrôleur avec dépendances
         $router->registerRoutes(TestControllerWithDependencies::class);
@@ -139,13 +139,13 @@ class ContainerRouterIntegrationTest extends TestCase
         $container = $this->app->getContainer();
         
         // Créer une instance non-singleton
-        $instance1 = $container->make(TestService::class);
+        $instance1 = $container->make(RouterTestService::class);
         
         // Nettoyer le cache (simule la fin de requête)
         $container->clearRequestCache();
         
         // Créer une nouvelle instance
-        $instance2 = $container->make(TestService::class);
+        $instance2 = $container->make(RouterTestService::class);
         
         // Les instances devraient être différentes (pas de cache)
         $this->assertNotSame($instance1, $instance2);
@@ -159,13 +159,13 @@ class ContainerRouterIntegrationTest extends TestCase
         $container = $this->app->getContainer();
         
         // Créer une instance (mise en cache de requête)
-        $instance1 = $container->make(TestService::class);
+        $instance1 = $container->make(RouterTestService::class);
         
         // Appeler shutdown
         $this->app->shutdown();
         
         // Créer une nouvelle instance
-        $instance2 = $container->make(TestService::class);
+        $instance2 = $container->make(RouterTestService::class);
         
         // Les instances devraient être différentes
         $this->assertNotSame($instance1, $instance2);
@@ -180,9 +180,9 @@ class ContainerRouterIntegrationTest extends TestCase
         $router = $this->app->getRouter();
         
         // Enregistrer un service
-        $container->singleton(TestService::class, fn() => new TestService());
+        $container->singleton(RouterTestService::class, fn() => new RouterTestService());
         
-        // Enregistrer les routes du contrôleur qui nécessite TestService dans son constructeur
+        // Enregistrer les routes du contrôleur qui nécessite RouterTestService dans son constructeur
         $router->registerRoutes(TestControllerWithConstructor::class);
         
         $request = new Request('/test-constructor', 'GET');
@@ -195,7 +195,7 @@ class ContainerRouterIntegrationTest extends TestCase
 
 // Classes de test
 
-class TestService
+class RouterTestService
 {
     public function doSomething(): string
     {
@@ -203,7 +203,7 @@ class TestService
     }
 }
 
-class TestLogger
+class RouterTestLogger
 {
     public function log(string $message): void
     {
@@ -211,7 +211,7 @@ class TestLogger
     }
 }
 
-class TestController extends Controller
+class RouterTestController extends Controller
 {
     #[Route(path: '/test', methods: ['GET'], name: 'test')]
     public function index(Request $request): Response
@@ -223,8 +223,8 @@ class TestController extends Controller
 class TestControllerWithDependencies extends Controller
 {
     public function __construct(
-        private TestService $service,
-        private TestLogger $logger
+        private RouterTestService $service,
+        private RouterTestLogger $logger
     ) {}
     
     #[Route(path: '/test-deps', methods: ['GET'], name: 'test-deps')]
@@ -238,7 +238,7 @@ class TestControllerWithDependencies extends Controller
 class TestControllerWithConstructor extends Controller
 {
     public function __construct(
-        private TestService $service
+        private RouterTestService $service
     ) {}
     
     #[Route(path: '/test-constructor', methods: ['GET'], name: 'test-constructor')]
@@ -247,4 +247,3 @@ class TestControllerWithConstructor extends Controller
         return new Response(200, 'OK');
     }
 }
-
