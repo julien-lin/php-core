@@ -158,4 +158,13 @@ class CsrfMiddlewareTest extends TestCase
         // Nettoyer
         unset($_POST['_token'], $_SERVER['REQUEST_METHOD']);
     }
+
+    public function testApiPrefixIsExcludedButSimilarPathsAreProtected(): void
+    {
+        $this->assertNull($this->middleware->handle(new Request('/api/products', 'POST')));
+
+        $response = $this->middleware->handle(new Request('/api-public', 'POST'));
+        $this->assertInstanceOf(Response::class, $response);
+        $this->assertSame(403, $response->getStatusCode());
+    }
 }

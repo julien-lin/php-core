@@ -15,6 +15,7 @@ et ce projet adhère au [Semantic Versioning](https://semver.org/lang/fr/).
 - La compression ignore désormais les réponses déjà encodées, transférées ou sans corps HTTP.
 - `CorsMiddleware` ajoute maintenant ses headers aux réponses normales via le contrat de post-traitement du routeur.
 - La validation des requêtes et le rate limiting peuvent cibler une liste de préfixes de routes.
+- L’exclusion CSRF `/api` respecte désormais les limites de segment et ne couvre pas `/api-public`.
 
 ## [1.4.4] - 2025-01-15
 

@@ -36,7 +36,8 @@ class CsrfMiddleware implements Middleware
         // Vérifier si le chemin est exclu de la protection CSRF
         $path = $request->getPath();
         foreach ($this->excludedPaths as $excludedPath) {
-            if (str_starts_with($path, $excludedPath)) {
+            $excludedPath = rtrim($excludedPath, '/') ?: '/';
+            if ($path === $excludedPath || str_starts_with($path, $excludedPath . '/')) {
                 // Route exclue, ne pas appliquer CSRF
                 return null;
             }
@@ -172,4 +173,3 @@ class CsrfMiddleware implements Middleware
         return '<input type="hidden" name="' . htmlspecialchars($name) . '" value="' . htmlspecialchars($token) . '">';
     }
 }
-
